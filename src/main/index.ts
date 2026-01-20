@@ -28,8 +28,8 @@ function createWindow(): void {
   })
 
   mainWindow.on('ready-to-show', () => {
-    // Don't auto-show - the app runs in the background by default
-    // mainWindow?.show()
+    // Show window on startup for debugging
+    mainWindow?.show()
   })
 
   // Hide window instead of closing on macOS
