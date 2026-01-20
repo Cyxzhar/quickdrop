@@ -1,0 +1,92 @@
+import { app } from 'electron'
+import { join } from 'path'
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs'
+import { UploadRecord } from '../types'
+import { getConfig } from '../config'
+
+// Use a simple JSON file-based store for compatibility
+const configDir = app.getPath('userData')
+const historyPath = join(configDir, 'history.json')
+
+interface HistoryData {
+  uploads: UploadRecord[]
+}
+
+function ensureConfigDir(): void {
+  if (!existsSync(configDir)) {
+    mkdirSync(configDir, { recursive: true })
+  }
+}
+
+function loadHistory(): HistoryData {
+  ensureConfigDir()
+
+  try {
+    if (existsSync(historyPath)) {
+      const data = readFileSync(historyPath, 'utf-8')
+      return JSON.parse(data)
+    }
+  } catch (error) {
+    console.error('Error loading history:', error)
+  }
+
+  return { uploads: [] }
+}
+
+function saveHistory(history: HistoryData): void {
+  ensureConfigDir()
+
+  try {
+    writeFileSync(historyPath, JSON.stringify(history, null, 2))
+  } catch (error) {
+    console.error('Error saving history:', error)
+  }
+}
+
+export function getUploadHistory(): UploadRecord[] {
+  const history = loadHistory()
+  return history.uploads || []
+}
+
+export function addUploadRecord(record: UploadRecord): void {
+  const config = getConfig()
+  const history = loadHistory()
+
+  // Add new record at the beginning
+  history.uploads.unshift(record)
+
+  // Keep only the max number of items
+  if (history.uploads.length > config.maxHistoryItems) {
+    history.uploads.splice(config.maxHistoryItems)
+  }
+
+  saveHistory(history)
+}
+
+export function removeUploadRecord(id: string): void {
+  const history = loadHistory()
+  history.uploads = history.uploads.filter(record => record.id !== id)
+  saveHistory(history)
+}
+
+export function clearUploadHistory(): void {
+  saveHistory({ uploads: [] })
+}
+
+export function cleanupExpiredRecords(): number {
+  const now = Date.now()
+  const history = loadHistory()
+  const originalLength = history.uploads.length
+  history.uploads = history.uploads.filter(record => record.expiresAt > now)
+  const removedCount = originalLength - history.uploads.length
+
+  if (removedCount > 0) {
+    saveHistory(history)
+  }
+
+  return removedCount
+}
+
+export function getRecentUploads(count: number = 10): UploadRecord[] {
+  return getUploadHistory().slice(0, count)
+}

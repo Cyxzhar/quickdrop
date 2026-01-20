@@ -1,26 +1,43 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, globalShortcut } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import { setupClipboardWatcher } from './services/clipboard-watcher'
-import { initTray } from './tray'
+import { setupClipboardWatcher, stopClipboardWatcher } from './services/clipboard-watcher'
+import { initTray, setTrayStatus, updateTrayMenu, destroyTray } from './tray'
+import { getConfig, setConfig, setMultipleConfig, isCloudflareConfigured } from './config'
+import { getUploadHistory, clearUploadHistory, cleanupExpiredRecords } from './services/history-store'
+import { UploadRecord, TrayStatus, UploadProgress, AppConfig } from './types'
 
 let mainWindow: BrowserWindow | null = null
 
 function createWindow(): void {
-  // Create the browser window.
   mainWindow = new BrowserWindow({
-    width: 900,
-    height: 670,
+    width: 400,
+    height: 600,
+    minWidth: 350,
+    minHeight: 400,
     show: false,
     autoHideMenuBar: true,
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+    vibrancy: 'sidebar',
+    visualEffectState: 'active',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: false,
+      contextIsolation: true
     }
   })
 
   mainWindow.on('ready-to-show', () => {
-    mainWindow?.show()
+    // Don't auto-show - the app runs in the background by default
+    // mainWindow?.show()
+  })
+
+  // Hide window instead of closing on macOS
+  mainWindow.on('close', (event) => {
+    if (process.platform === 'darwin') {
+      event.preventDefault()
+      mainWindow?.hide()
+    }
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -28,8 +45,6 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
-  // HMR for renderer base on electron-vite cli.
-  // Load the remote URL for development or the local html file for production.
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
@@ -37,45 +52,154 @@ function createWindow(): void {
   }
 }
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
-app.whenReady().then(() => {
-  // Set app user model id for windows
-  electronApp.setAppUserModelId('com.electron')
+// Setup IPC handlers
+function setupIPC(): void {
+  // Get upload history
+  ipcMain.handle('get-history', () => {
+    return getUploadHistory()
+  })
 
-  // Default open or close DevTools by F12 in development
-  // and ignore CommandOrControl + R in production.
-  // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
+  // Clear history
+  ipcMain.handle('clear-history', () => {
+    clearUploadHistory()
+    updateTrayMenu()
+    return true
+  })
+
+  // Get config
+  ipcMain.handle('get-config', () => {
+    return getConfig()
+  })
+
+  // Update config
+  ipcMain.handle('set-config', (_event, key: keyof AppConfig, value: any) => {
+    setConfig(key, value)
+    return true
+  })
+
+  // Update multiple config values
+  ipcMain.handle('set-multiple-config', (_event, config: Partial<AppConfig>) => {
+    setMultipleConfig(config)
+    return true
+  })
+
+  // Check if Cloudflare is configured
+  ipcMain.handle('is-cloudflare-configured', () => {
+    return isCloudflareConfigured()
+  })
+
+  // Show window
+  ipcMain.on('show-window', () => {
+    mainWindow?.show()
+    mainWindow?.focus()
+  })
+
+  // Hide window
+  ipcMain.on('hide-window', () => {
+    mainWindow?.hide()
+  })
+}
+
+// Register global shortcuts
+function registerShortcuts(): void {
+  // Register a global shortcut to show the app
+  globalShortcut.register('CommandOrControl+Shift+Q', () => {
+    if (mainWindow?.isVisible()) {
+      mainWindow.hide()
+    } else {
+      mainWindow?.show()
+      mainWindow?.focus()
+    }
+  })
+}
+
+// Cleanup expired records periodically
+function setupCleanupJob(): void {
+  // Run cleanup every hour
+  setInterval(() => {
+    const removed = cleanupExpiredRecords()
+    if (removed > 0) {
+      console.log(`Cleaned up ${removed} expired records`)
+      updateTrayMenu()
+    }
+  }, 60 * 60 * 1000)
+
+  // Also run on startup
+  const removed = cleanupExpiredRecords()
+  if (removed > 0) {
+    console.log(`Initial cleanup removed ${removed} expired records`)
+  }
+}
+
+app.whenReady().then(() => {
+  electronApp.setAppUserModelId('com.quickdrop.app')
+
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
 
   createWindow()
-  
+  setupIPC()
+
+  // Initialize tray
   initTray(() => mainWindow)
 
-  setupClipboardWatcher((link) => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('upload-success', link)
+  // Setup clipboard watcher with callbacks
+  setupClipboardWatcher(
+    // On success callback
+    (link: string, record: UploadRecord) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('upload-success', { link, record })
+      }
+      updateTrayMenu()
+    },
+    // On status change callback
+    (status: TrayStatus) => {
+      setTrayStatus(status)
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('status-change', status)
+      }
+    },
+    // On progress callback
+    (progress: UploadProgress) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('upload-progress', progress)
+      }
+    }
+  )
+
+  // Register shortcuts
+  registerShortcuts()
+
+  // Setup cleanup job
+  setupCleanupJob()
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow()
+    } else {
+      mainWindow?.show()
     }
   })
 
-  app.on('activate', function () {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
-  })
+  console.log('QuickDrop started successfully')
+  console.log(`Cloudflare configured: ${isCloudflareConfigured()}`)
+  console.log(`Using mock uploader: ${getConfig().useMockUploader}`)
 })
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
   }
 })
 
-// In this file you can include the rest of your app"s specific main process
-// code. You can also put them in separate files and require them here.
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll()
+  stopClipboardWatcher()
+  destroyTray()
+})
+
+app.on('before-quit', () => {
+  // Allow actual quit
+  mainWindow?.removeAllListeners('close')
+})
