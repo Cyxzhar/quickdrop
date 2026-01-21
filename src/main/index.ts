@@ -2,6 +2,7 @@ import { app, shell, BrowserWindow, ipcMain, globalShortcut } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { setupClipboardWatcher, stopClipboardWatcher } from './services/clipboard-watcher'
+import { startScreenshotWatcher, stopScreenshotWatcher } from './services/screenshot-watcher'
 import { initTray, setTrayStatus, updateTrayMenu, destroyTray } from './tray'
 import { getConfig, setConfig, setMultipleConfig, isCloudflareConfigured } from './config'
 import { getUploadHistory, clearUploadHistory, cleanupExpiredRecords } from './services/history-store'
@@ -144,29 +145,32 @@ app.whenReady().then(() => {
   // Initialize tray
   initTray(() => mainWindow)
 
-  // Setup clipboard watcher with callbacks
-  setupClipboardWatcher(
-    // On success callback
-    (link: string, record: UploadRecord) => {
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('upload-success', { link, record })
-      }
-      updateTrayMenu()
-    },
-    // On status change callback
-    (status: TrayStatus) => {
-      setTrayStatus(status)
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('status-change', status)
-      }
-    },
-    // On progress callback
-    (progress: UploadProgress) => {
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('upload-progress', progress)
-      }
+  // Shared callbacks for both clipboard and screenshot watchers
+  const handleUploadSuccess = (link: string, record: UploadRecord) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('upload-success', { link, record })
     }
-  )
+    updateTrayMenu()
+  }
+
+  const handleStatusChange = (status: TrayStatus) => {
+    setTrayStatus(status)
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('status-change', status)
+    }
+  }
+
+  const handleProgress = (progress: UploadProgress) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('upload-progress', progress)
+    }
+  }
+
+  // Setup clipboard watcher
+  setupClipboardWatcher(handleUploadSuccess, handleStatusChange, handleProgress)
+
+  // Setup screenshot watcher
+  startScreenshotWatcher(handleUploadSuccess, handleStatusChange)
 
   // Register shortcuts
   registerShortcuts()
@@ -185,6 +189,7 @@ app.whenReady().then(() => {
   console.log('QuickDrop started successfully')
   console.log(`Cloudflare configured: ${isCloudflareConfigured()}`)
   console.log(`Using mock uploader: ${getConfig().useMockUploader}`)
+  console.log(`Screenshot watching: ${getConfig().watchScreenshots}`)
 })
 
 app.on('window-all-closed', () => {
@@ -196,6 +201,7 @@ app.on('window-all-closed', () => {
 app.on('will-quit', () => {
   globalShortcut.unregisterAll()
   stopClipboardWatcher()
+  stopScreenshotWatcher()
   destroyTray()
 })
 

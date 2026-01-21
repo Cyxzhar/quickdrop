@@ -14,6 +14,8 @@ const defaultConfig: AppConfig = {
   cloudflareR2Bucket: 'quickdrop',
   cloudflareWorkerUrl: '',
   autoUpload: true,
+  watchScreenshots: true,
+  screenshotsDirectory: '',
   expiryHours: 24,
   maxHistoryItems: 50,
   useMockUploader: true

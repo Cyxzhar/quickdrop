@@ -16,6 +16,8 @@ export interface AppConfig {
   cloudflareR2Bucket: string
   cloudflareWorkerUrl: string
   autoUpload: boolean
+  watchScreenshots: boolean
+  screenshotsDirectory: string
   expiryHours: number
   maxHistoryItems: number
   useMockUploader: boolean
