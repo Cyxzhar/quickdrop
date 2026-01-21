@@ -243,28 +243,44 @@ export default {
 
   // Scheduled handler for cleaning up expired images
   async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
-    console.log('Running cleanup job...')
+    const startTime = Date.now()
+    console.log(`[Cleanup] Starting cleanup job at ${new Date().toISOString()}`)
 
     const EXPIRY_HOURS = 24
     const expiryTime = Date.now() - EXPIRY_HOURS * 60 * 60 * 1000
 
+    let deletedCount = 0
+    let scannedCount = 0
+    let cursor: string | undefined
+
     try {
-      // List all objects in the bucket
-      const listed = await env.QUICKDROP_BUCKET.list()
-      let deletedCount = 0
+      // Paginate through all objects in the bucket
+      do {
+        const listed = await env.QUICKDROP_BUCKET.list({
+          cursor,
+          limit: 1000 // Process 1000 objects at a time
+        })
 
-      for (const object of listed.objects) {
-        // Check if object is older than expiry time
-        if (object.uploaded.getTime() < expiryTime) {
-          await env.QUICKDROP_BUCKET.delete(object.key)
-          deletedCount++
-          console.log(`Deleted expired image: ${object.key}`)
+        scannedCount += listed.objects.length
+
+        // Delete expired objects
+        for (const object of listed.objects) {
+          if (object.uploaded.getTime() < expiryTime) {
+            await env.QUICKDROP_BUCKET.delete(object.key)
+            deletedCount++
+            console.log(`[Cleanup] Deleted expired image: ${object.key} (uploaded: ${object.uploaded.toISOString()})`)
+          }
         }
-      }
 
-      console.log(`Cleanup complete. Deleted ${deletedCount} expired images.`)
+        cursor = listed.cursor
+      } while (cursor)
+
+      const duration = Date.now() - startTime
+      console.log(`[Cleanup] Cleanup complete in ${duration}ms. Scanned: ${scannedCount}, Deleted: ${deletedCount} expired images.`)
     } catch (error) {
-      console.error('Cleanup job failed:', error)
+      const duration = Date.now() - startTime
+      console.error(`[Cleanup] Cleanup job failed after ${duration}ms. Scanned: ${scannedCount}, Deleted: ${deletedCount}`, error)
+      throw error // Re-throw for monitoring systems
     }
   }
 }
