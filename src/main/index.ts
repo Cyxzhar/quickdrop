@@ -109,11 +109,15 @@ function setupIPC(): void {
 
   // Update record title
   ipcMain.handle('update-record-title', (_event, id: string, title: string) => {
-    return updateUploadRecordTitle(id, title)
+    console.log(`[IPC] update-record-title: ${id} -> ${title}`)
+    const result = updateUploadRecordTitle(id, title)
+    console.log(`[IPC] update result: ${result}`)
+    return result
   })
 
   // Update record tags
   ipcMain.handle('update-record-tags', (_event, id: string, tags: string[]) => {
+    console.log(`[IPC] update-record-tags: ${id} -> ${tags}`)
     return updateUploadRecordTags(id, tags)
   })
 

@@ -139,7 +139,9 @@ function App(): JSX.Element {
 
   const handleRename = async (id: string, newTitle: string) => {
     try {
-      await window.api.updateRecordTitle(id, newTitle)
+      const success = await window.api.updateRecordTitle(id, newTitle)
+      if (!success) throw new Error('Record not found')
+      
       setHistory(prev => prev.map(item => 
         item.id === id ? { ...item, title: newTitle } : item
       ))
@@ -152,7 +154,9 @@ function App(): JSX.Element {
 
   const handleUpdateTags = async (id: string, tags: string[]) => {
     try {
-      await window.api.updateRecordTags(id, tags)
+      const success = await window.api.updateRecordTags(id, tags)
+      if (!success) throw new Error('Record not found')
+
       setHistory(prev => prev.map(item => 
         item.id === id ? { ...item, tags } : item
       ))

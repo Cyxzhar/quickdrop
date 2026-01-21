@@ -73,6 +73,8 @@ export function updateUploadRecordTitle(id: string, title: string): boolean {
   const history = loadHistory()
   const recordIndex = history.uploads.findIndex(record => record.id === id)
 
+  console.log(`[Store] Finding record ${id}. Index: ${recordIndex}`)
+
   if (recordIndex !== -1) {
     history.uploads[recordIndex].title = title
     saveHistory(history)
@@ -84,6 +86,8 @@ export function updateUploadRecordTitle(id: string, title: string): boolean {
 export function updateUploadRecordTags(id: string, tags: string[]): boolean {
   const history = loadHistory()
   const recordIndex = history.uploads.findIndex(record => record.id === id)
+
+  console.log(`[Store] Finding record ${id} for tags. Index: ${recordIndex}`)
 
   if (recordIndex !== -1) {
     history.uploads[recordIndex].tags = tags
@@ -108,7 +112,25 @@ export function updateUploadRecordText(id: string, text: string): boolean {
 export function clearUploadHistory(): void {
   saveHistory({ uploads: [] })
 }
-// ... (skip lines) ...
+
+export function cleanupExpiredRecords(): number {
+  const now = Date.now()
+  const history = loadHistory()
+  const originalLength = history.uploads.length
+  history.uploads = history.uploads.filter(record => record.expiresAt > now)
+  const removedCount = originalLength - history.uploads.length
+
+  if (removedCount > 0) {
+    saveHistory(history)
+  }
+
+  return removedCount
+}
+
+export function getRecentUploads(count: number = 10): UploadRecord[] {
+  return getUploadHistory().slice(0, count)
+}
+
 // Search functionality
 export function searchHistory(query: string): UploadRecord[] {
   const history = loadHistory()
