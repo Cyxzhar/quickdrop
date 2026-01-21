@@ -19,7 +19,8 @@
     "build:mac": "npm run build && electron-builder --mac",
     "build:win": "npm run build && electron-builder --win",
     "build:linux": "npm run build && electron-builder --linux",
-    "build:all": "npm run build && electron-builder --mac --win --linux"
+    "build:all": "npm run build && electron-builder --mac --win --linux",
+    "activity": "bash scripts/auto-commit.sh"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
