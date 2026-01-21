@@ -1,17 +1,23 @@
 import { useState, useEffect, useCallback } from 'react'
 import './styles.css'
-import type { UploadRecord, AppConfig, UploadProgress, TrayStatus } from './env.d'
+import type { UploadRecord, AppConfig, UploadProgress, TrayStatus, SortBy, SortOrder } from './env.d'
 
 type Tab = 'history' | 'settings'
 
 function App(): JSX.Element {
   const [activeTab, setActiveTab] = useState<Tab>('history')
   const [history, setHistory] = useState<UploadRecord[]>([])
+  const [filteredHistory, setFilteredHistory] = useState<UploadRecord[]>([])
   const [config, setConfig] = useState<AppConfig | null>(null)
   const [status, setStatus] = useState<TrayStatus>('idle')
   const [progress, setProgress] = useState<UploadProgress | null>(null)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   const [isCloudflareConfigured, setIsCloudflareConfigured] = useState(false)
+
+  // New state for enhanced history features
+  const [searchQuery, setSearchQuery] = useState('')
+  const [sortBy, setSortBy] = useState<SortBy>('timestamp')
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
 
   // Load initial data
   useEffect(() => {
@@ -87,9 +93,48 @@ function App(): JSX.Element {
     if (confirm('Clear all upload history?')) {
       await window.api.clearHistory()
       setHistory([])
+      setFilteredHistory([])
       showToast('History cleared', 'success')
     }
   }
+
+  const deleteRecord = async (id: string) => {
+    if (confirm('Delete this upload from history?')) {
+      await window.api.deleteRecord(id)
+      setHistory(prev => prev.filter(item => item.id !== id))
+      setFilteredHistory(prev => prev.filter(item => item.id !== id))
+      showToast('Deleted from history', 'success')
+    }
+  }
+
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query)
+    if (query.trim()) {
+      const results = await window.api.searchHistory(query)
+      setFilteredHistory(results)
+    } else {
+      applySort()
+    }
+  }
+
+  const applySort = async () => {
+    const sorted = await window.api.getSortedHistory(sortBy, sortOrder)
+    setFilteredHistory(sorted)
+  }
+
+  const toggleSortOrder = () => {
+    const newOrder = sortOrder === 'asc' ? 'desc' : 'asc'
+    setSortOrder(newOrder)
+  }
+
+  // Apply search and sort whenever history, sortBy, or sortOrder changes
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      handleSearch(searchQuery)
+    } else {
+      applySort()
+    }
+  }, [history, sortBy, sortOrder])
 
   const updateConfig = async (key: keyof AppConfig, value: any) => {
     if (!config) return
@@ -191,8 +236,38 @@ function App(): JSX.Element {
               </div>
             ) : (
               <>
+                {/* Search and Sort Controls */}
+                <div className="history-controls">
+                  <input
+                    type="text"
+                    className="search-input"
+                    placeholder="Search uploads..."
+                    value={searchQuery}
+                    onChange={(e) => handleSearch(e.target.value)}
+                  />
+                  <div className="sort-controls">
+                    <select
+                      className="select"
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value as SortBy)}
+                    >
+                      <option value="timestamp">Date</option>
+                      <option value="size">Size</option>
+                      <option value="expiresAt">Expiry</option>
+                    </select>
+                    <button
+                      className="btn-icon"
+                      onClick={toggleSortOrder}
+                      title={`Sort ${sortOrder === 'asc' ? 'ascending' : 'descending'}`}
+                    >
+                      {sortOrder === 'asc' ? '↑' : '↓'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* History List */}
                 <div className="history-list">
-                  {history.map((item) => (
+                  {filteredHistory.map((item) => (
                     <div key={item.id} className="history-item">
                       <div className="history-item-icon">🖼️</div>
                       <div className="history-item-info">
@@ -222,13 +297,29 @@ function App(): JSX.Element {
                         >
                           🔗
                         </button>
+                        <button
+                          className="btn-icon btn-delete"
+                          onClick={() => deleteRecord(item.id)}
+                          title="Delete"
+                        >
+                          🗑️
+                        </button>
                       </div>
                     </div>
                   ))}
                 </div>
+
+                {filteredHistory.length === 0 && searchQuery && (
+                  <div className="empty-state">
+                    <div className="empty-state-icon">🔍</div>
+                    <h3>No results found</h3>
+                    <p>No uploads match your search "{searchQuery}"</p>
+                  </div>
+                )}
+
                 <div style={{ marginTop: '20px', textAlign: 'center' }}>
                   <button className="btn btn-danger" onClick={clearHistory}>
-                    Clear History
+                    Clear All History
                   </button>
                 </div>
               </>

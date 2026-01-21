@@ -242,6 +242,45 @@ body {
 }
 
 /* Upload History List */
+/* History Controls */
+.history-controls {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 0 4px;
+}
+
+.search-input {
+  flex: 1;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  color: var(--text-primary);
+  font-size: 14px;
+  transition: var(--transition);
+}
+
+.search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.sort-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.sort-controls .select {
+  min-width: 100px;
+}
+
 .history-list {
   display: flex;
   flex-direction: column;
@@ -329,6 +368,11 @@ body {
   background: var(--accent-primary);
   border-color: var(--accent-primary);
   color: white;
+}
+
+.btn-icon.btn-delete:hover {
+  background: var(--error);
+  border-color: var(--error);
 }
 
 /* Buttons */
