@@ -90,3 +90,41 @@ export function cleanupExpiredRecords(): number {
 export function getRecentUploads(count: number = 10): UploadRecord[] {
   return getUploadHistory().slice(0, count)
 }
+
+// Search functionality
+export function searchHistory(query: string): UploadRecord[] {
+  const history = loadHistory()
+  const lowerQuery = query.toLowerCase().trim()
+
+  if (!lowerQuery) {
+    return history.uploads
+  }
+
+  return history.uploads.filter(record =>
+    record.link.toLowerCase().includes(lowerQuery) ||
+    record.filename.toLowerCase().includes(lowerQuery) ||
+    record.id.toLowerCase().includes(lowerQuery)
+  )
+}
+
+// Sorting types and function
+export type SortBy = 'timestamp' | 'size' | 'expiresAt'
+export type SortOrder = 'asc' | 'desc'
+
+export function getSortedHistory(sortBy: SortBy = 'timestamp', order: SortOrder = 'desc'): UploadRecord[] {
+  const history = getUploadHistory()
+
+  return [...history].sort((a, b) => {
+    const aVal = a[sortBy]
+    const bVal = b[sortBy]
+    return order === 'desc' ? bVal - aVal : aVal - bVal
+  })
+}
+
+// Filter by date range
+export function filterHistoryByDate(startTime: number, endTime: number): UploadRecord[] {
+  const history = loadHistory()
+  return history.uploads.filter(record =>
+    record.timestamp >= startTime && record.timestamp <= endTime
+  )
+}

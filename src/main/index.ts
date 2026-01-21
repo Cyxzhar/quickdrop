@@ -5,7 +5,7 @@ import { setupClipboardWatcher, stopClipboardWatcher } from './services/clipboar
 import { startScreenshotWatcher, stopScreenshotWatcher } from './services/screenshot-watcher'
 import { initTray, setTrayStatus, updateTrayMenu, destroyTray } from './tray'
 import { getConfig, setConfig, setMultipleConfig, isCloudflareConfigured } from './config'
-import { getUploadHistory, clearUploadHistory, cleanupExpiredRecords } from './services/history-store'
+import { getUploadHistory, clearUploadHistory, cleanupExpiredRecords, removeUploadRecord, searchHistory, getSortedHistory, SortBy, SortOrder } from './services/history-store'
 import { UploadRecord, TrayStatus, UploadProgress, AppConfig } from './types'
 
 let mainWindow: BrowserWindow | null = null
@@ -98,6 +98,23 @@ function setupIPC(): void {
   // Hide window
   ipcMain.on('hide-window', () => {
     mainWindow?.hide()
+  })
+
+  // Delete individual record
+  ipcMain.handle('delete-record', (_event, id: string) => {
+    removeUploadRecord(id)
+    updateTrayMenu()
+    return true
+  })
+
+  // Search history
+  ipcMain.handle('search-history', (_event, query: string) => {
+    return searchHistory(query)
+  })
+
+  // Get sorted history
+  ipcMain.handle('get-sorted-history', (_event, sortBy: SortBy, order: SortOrder) => {
+    return getSortedHistory(sortBy, order)
   })
 }
 

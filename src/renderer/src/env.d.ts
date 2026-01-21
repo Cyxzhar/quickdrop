@@ -29,6 +29,9 @@ export interface UploadProgress {
 
 export type TrayStatus = 'idle' | 'uploading' | 'success' | 'error'
 
+export type SortBy = 'timestamp' | 'size' | 'expiresAt'
+export type SortOrder = 'asc' | 'desc'
+
 interface WindowApi {
   onUploadSuccess: (callback: (data: { link: string; record: UploadRecord }) => void) => void
   onStatusChange: (callback: (status: TrayStatus) => void) => void
@@ -42,6 +45,9 @@ interface WindowApi {
   isCloudflareConfigured: () => Promise<boolean>
   showWindow: () => void
   hideWindow: () => void
+  deleteRecord: (id: string) => Promise<boolean>
+  searchHistory: (query: string) => Promise<UploadRecord[]>
+  getSortedHistory: (sortBy: SortBy, order: SortOrder) => Promise<UploadRecord[]>
   removeAllListeners: (channel: string) => void
 }
 

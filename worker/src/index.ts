@@ -114,6 +114,102 @@ function getViewerHTML(imageUrl: string, imageId: string): string {
 </html>`
 }
 
+// Landing page HTML
+function getLandingHTML(): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuickDrop - Screenshot to Link in 1 Second</title>
+  <meta name="description" content="Transform screenshots into shareable links instantly. Auto-upload, 24h auto-expiry, cross-platform. 100% free forever.">
+  <meta property="og:title" content="QuickDrop - Screenshot Sharing Made Simple">
+  <meta property="og:description" content="Transform screenshots into shareable links instantly. No apps to open, no files to find, no BS.">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg-primary: #0f0f23; --bg-secondary: #1a1a2e; --bg-tertiary: #16213e;
+      --accent: #6366f1; --gradient: linear-gradient(135deg, #6366f1, #8b5cf6);
+      --text: #ffffff; --text-sec: #a0a0b0; --border: #2d2d4a;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg-primary); color: var(--text); line-height: 1.6; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+    nav { padding: 24px 0; border-bottom: 1px solid var(--border); }
+    nav .container { display: flex; justify-content: space-between; align-items: center; }
+    .logo { font-size: 24px; font-weight: 700; background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .nav-links { display: flex; gap: 32px; }
+    .nav-links a { color: var(--text-sec); text-decoration: none; font-size: 15px; font-weight: 500; }
+    .hero { padding: 120px 0 80px; text-align: center; }
+    .hero h1 { font-size: 64px; font-weight: 800; margin-bottom: 24px; background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .hero p { font-size: 24px; color: var(--text-sec); max-width: 700px; margin: 0 auto 48px; }
+    .btn { padding: 16px 32px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-flex; gap: 8px; transition: all 0.2s; border: none; }
+    .btn-primary { background: var(--gradient); color: white; box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4); }
+    .btn-primary:hover { transform: translateY(-2px); }
+    .features { padding: 80px 0; background: var(--bg-secondary); }
+    .features h2 { text-align: center; font-size: 48px; margin-bottom: 64px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 32px; }
+    .card { background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 16px; padding: 32px; }
+    .card:hover { transform: translateY(-4px); border-color: var(--accent); transition: all 0.2s; }
+    .icon { font-size: 48px; margin-bottom: 16px; }
+    .card h3 { font-size: 24px; margin-bottom: 12px; }
+    .card p { color: var(--text-sec); }
+    footer { padding: 48px 0; border-top: 1px solid var(--border); text-align: center; color: var(--text-sec); }
+    @media (max-width: 768px) { .hero h1 { font-size: 42px; } .hero p { font-size: 18px; } }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="container">
+      <div class="logo">📸 QuickDrop</div>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="https://github.com/quickdrop/quickdrop-app">GitHub</a>
+      </div>
+    </div>
+  </nav>
+  <section class="hero">
+    <div class="container">
+      <h1>Screenshot to Link<br>in 1 Second</h1>
+      <p>Transform screenshots into shareable links instantly. No apps to open, no files to find, no BS.</p>
+      <button id="download-btn" class="btn btn-primary">
+        <span>⬇️</span><span id="download-text">Download for Mac</span>
+      </button>
+    </div>
+  </section>
+  <section id="features" class="features">
+    <div class="container">
+      <h2>Features</h2>
+      <div class="grid">
+        <div class="card"><div class="icon">⚡</div><h3>Instant Upload</h3><p>Take a screenshot and get a shareable link in under 1 second.</p></div>
+        <div class="card"><div class="icon">🔒</div><h3>Privacy First</h3><p>All screenshots automatically expire after 24 hours.</p></div>
+        <div class="card"><div class="icon">📋</div><h3>Clipboard Magic</h3><p>Screenshots are automatically replaced with shareable links.</p></div>
+        <div class="card"><div class="icon">📱</div><h3>System Tray</h3><p>Lives in your system tray with upload status and history.</p></div>
+        <div class="card"><div class="icon">🌍</div><h3>Universal Sharing</h3><p>Links work everywhere: Slack, Discord, Email, SMS.</p></div>
+        <div class="card"><div class="icon">🎨</div><h3>Beautiful Viewer</h3><p>Recipients see screenshots in a clean, modern viewer.</p></div>
+      </div>
+    </div>
+  </section>
+  <footer>
+    <div class="container"><p>Built with ♥️ by the QuickDrop community • <a href="https://github.com/quickdrop/quickdrop-app">GitHub</a></p></div>
+  </footer>
+  <script>
+    const platform = navigator.platform.toLowerCase();
+    const btn = document.getElementById('download-btn');
+    const text = document.getElementById('download-text');
+    const urls = {
+      mac: 'https://github.com/quickdrop/quickdrop-app/releases/latest/download/QuickDrop-mac.dmg',
+      windows: 'https://github.com/quickdrop/quickdrop-app/releases/latest/download/QuickDrop-setup.exe',
+      linux: 'https://github.com/quickdrop/quickdrop-app/releases/latest/download/QuickDrop-linux.AppImage'
+    };
+    let detected = 'mac';
+    if (platform.includes('win')) { detected = 'windows'; text.textContent = 'Download for Windows'; }
+    else if (platform.includes('linux')) { detected = 'linux'; text.textContent = 'Download for Linux'; }
+    btn.onclick = () => window.location.href = urls[detected];
+  </script>
+</body>
+</html>`
+}
+
 // Error page HTML
 function getErrorHTML(message: string): string {
   return `<!DOCTYPE html>
@@ -153,7 +249,7 @@ function getErrorHTML(message: string): string {
 <body>
   <h1>404</h1>
   <p>${message}</p>
-  <a href="https://quickdrop.app">Get QuickDrop</a>
+  <a href="/">Go Home</a>
 </body>
 </html>`
 }
@@ -175,9 +271,14 @@ export default {
       })
     }
 
-    // Root path - redirect to main site
+    // Root path - serve landing page
     if (path === '/' || path === '') {
-      return Response.redirect('https://quickdrop.app', 302)
+      return new Response(getLandingHTML(), {
+        headers: {
+          'Content-Type': 'text/html',
+          'Cache-Control': 'public, max-age=3600'
+        }
+      })
     }
 
     // Extract image ID from path (e.g., /abc123 or /abc123.png)
