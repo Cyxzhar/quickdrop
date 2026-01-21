@@ -151,6 +151,10 @@ export function SettingsSection({ config, onUpdateConfig, isCloudflareConfigured
                 ? 'Cloudflare R2 is configured and ready'
                 : 'Complete all fields to enable cloud upload'}
             </Alert>
+
+            <Alert severity="info" sx={{ mt: 1 }}>
+              <strong>Privacy Note:</strong> Your keys are stored encrypted locally on your device. We do not have access to your credentials or your files.
+            </Alert>
           </Paper>
         </Box>
       )}

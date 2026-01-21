@@ -69,6 +69,7 @@ function App(): JSX.Element {
     if (searchQuery.trim()) {
       const lowerQuery = searchQuery.toLowerCase()
       results = results.filter(item => 
+        (item.title && item.title.toLowerCase().includes(lowerQuery)) ||
         item.link.toLowerCase().includes(lowerQuery) || 
         item.filename.toLowerCase().includes(lowerQuery)
       )
@@ -136,6 +137,19 @@ function App(): JSX.Element {
     }
   }
 
+  const handleRename = async (id: string, newTitle: string) => {
+    try {
+      await window.api.updateRecordTitle(id, newTitle)
+      setHistory(prev => prev.map(item => 
+        item.id === id ? { ...item, title: newTitle } : item
+      ))
+      showToast('Title updated', 'success')
+    } catch (error) {
+      console.error('Failed to rename:', error)
+      showToast('Failed to update title', 'error')
+    }
+  }
+
   const updateConfig = async (key: keyof AppConfig, value: any) => {
     if (!config) return
     await window.api.setConfig(key, value)
@@ -178,6 +192,7 @@ function App(): JSX.Element {
               onCopy={copyToClipboard}
               onOpen={openLink}
               onDelete={deleteRecord}
+              onRename={handleRename}
               onClearAll={clearHistory}
               searchQuery={searchQuery}
             />

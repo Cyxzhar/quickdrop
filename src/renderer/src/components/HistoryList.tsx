@@ -8,6 +8,7 @@ interface HistoryListProps {
   onCopy: (link: string) => void
   onOpen: (link: string) => void
   onDelete: (id: string) => void
+  onRename: (id: string, newTitle: string) => void
   onClearAll: () => void
   searchQuery: string
 }
@@ -17,6 +18,7 @@ export function HistoryList({
   onCopy,
   onOpen,
   onDelete,
+  onRename,
   onClearAll,
   searchQuery
 }: HistoryListProps) {
@@ -53,6 +55,7 @@ export function HistoryList({
           onCopy={onCopy}
           onOpen={onOpen}
           onDelete={onDelete}
+          onRename={onRename}
         />
       ))}
       

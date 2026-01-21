@@ -57,6 +57,7 @@ const api = {
   deleteRecord: (id: string): Promise<boolean> => {
     return ipcRenderer.invoke('delete-record', id)
   },
+  updateRecordTitle: (id: string, title: string): Promise<boolean> => ipcRenderer.invoke('update-record-title', id, title),
   searchHistory: (query: string): Promise<UploadRecord[]> => {
     return ipcRenderer.invoke('search-history', query)
   },

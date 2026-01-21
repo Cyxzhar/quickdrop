@@ -1,4 +1,5 @@
 import { createHash, createHmac, webcrypto } from 'crypto'
+import { nativeImage } from 'electron'
 import { UploadRecord, ProgressCallback } from '../types'
 import { getConfig, isCloudflareConfigured } from '../config'
 import { addUploadRecord } from './history-store'
@@ -241,11 +242,18 @@ export async function uploadImage(
     result = await cloudflareR2Upload(uploadBuffer, onProgress, isEncrypted)
   }
 
+  // Generate thumbnail for UI (resize to max 100x100)
+  // We use the ORIGINAL buffer for thumbnail (not encrypted) so we can see it in history
+  const image = nativeImage.createFromBuffer(buffer)
+  const thumbnail = image.resize({ height: 100 }).toDataURL()
+
   // Create and store the upload record
   const record: UploadRecord = {
     id: result.id,
     link: result.link,
     filename: isEncrypted ? `${result.id}.enc` : `${result.id}.png`,
+    title: `Screenshot ${new Date().toLocaleTimeString()}`, // Default title
+    thumbnail: thumbnail,
     size: uploadBuffer.length,
     timestamp: Date.now(),
     expiresAt

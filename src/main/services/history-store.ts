@@ -69,6 +69,18 @@ export function removeUploadRecord(id: string): void {
   saveHistory(history)
 }
 
+export function updateUploadRecordTitle(id: string, title: string): boolean {
+  const history = loadHistory()
+  const recordIndex = history.uploads.findIndex(record => record.id === id)
+
+  if (recordIndex !== -1) {
+    history.uploads[recordIndex].title = title
+    saveHistory(history)
+    return true
+  }
+  return false
+}
+
 export function clearUploadHistory(): void {
   saveHistory({ uploads: [] })
 }
@@ -101,6 +113,7 @@ export function searchHistory(query: string): UploadRecord[] {
   }
 
   return history.uploads.filter(record =>
+    (record.title && record.title.toLowerCase().includes(lowerQuery)) ||
     record.link.toLowerCase().includes(lowerQuery) ||
     record.filename.toLowerCase().includes(lowerQuery) ||
     record.id.toLowerCase().includes(lowerQuery)
