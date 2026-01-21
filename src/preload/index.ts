@@ -54,13 +54,10 @@ const api = {
   clearHistory: (): Promise<boolean> => {
     return ipcRenderer.invoke('clear-history')
   },
-  deleteRecord: (id: string): Promise<boolean> => {
-    return ipcRenderer.invoke('delete-record', id)
-  },
+  deleteRecord: (id: string): Promise<boolean> => ipcRenderer.invoke('delete-record', id),
   updateRecordTitle: (id: string, title: string): Promise<boolean> => ipcRenderer.invoke('update-record-title', id, title),
-  searchHistory: (query: string): Promise<UploadRecord[]> => {
-    return ipcRenderer.invoke('search-history', query)
-  },
+  updateRecordTags: (id: string, tags: string[]): Promise<boolean> => ipcRenderer.invoke('update-record-tags', id, tags),
+  searchHistory: (query: string): Promise<UploadRecord[]> => ipcRenderer.invoke('search-history', query),
   getSortedHistory: (sortBy: string, order: string): Promise<UploadRecord[]> => {
     return ipcRenderer.invoke('get-sorted-history', sortBy, order)
   },

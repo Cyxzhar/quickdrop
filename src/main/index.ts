@@ -5,7 +5,7 @@ import { setupClipboardWatcher, stopClipboardWatcher } from './services/clipboar
 import { startScreenshotWatcher, stopScreenshotWatcher } from './services/screenshot-watcher'
 import { initTray, setTrayStatus, updateTrayMenu, destroyTray } from './tray'
 import { getConfig, setConfig, setMultipleConfig, isCloudflareConfigured } from './config'
-import { getUploadHistory, clearUploadHistory, cleanupExpiredRecords, removeUploadRecord, updateUploadRecordTitle, searchHistory, getSortedHistory, SortBy, SortOrder } from './services/history-store'
+import { getUploadHistory, clearUploadHistory, cleanupExpiredRecords, removeUploadRecord, updateUploadRecordTitle, updateUploadRecordTags, searchHistory, getSortedHistory, SortBy, SortOrder } from './services/history-store'
 import { UploadRecord, TrayStatus, UploadProgress, AppConfig } from './types'
 
 let mainWindow: BrowserWindow | null = null
@@ -110,6 +110,11 @@ function setupIPC(): void {
   // Update record title
   ipcMain.handle('update-record-title', (_event, id: string, title: string) => {
     return updateUploadRecordTitle(id, title)
+  })
+
+  // Update record tags
+  ipcMain.handle('update-record-tags', (_event, id: string, tags: string[]) => {
+    return updateUploadRecordTags(id, tags)
   })
 
   // Search history

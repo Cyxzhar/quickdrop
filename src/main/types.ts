@@ -6,6 +6,8 @@ export interface UploadRecord {
   filename: string
   title?: string
   thumbnail?: string
+  tags?: string[]
+  text?: string
   size: number
   timestamp: number
   expiresAt: number

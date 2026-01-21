@@ -6,6 +6,8 @@ export interface UploadRecord {
   filename: string
   title?: string
   thumbnail?: string
+  tags?: string[]
+  text?: string
   size: number
   timestamp: number
   expiresAt: number
@@ -51,6 +53,7 @@ interface WindowApi {
   hideWindow: () => void
   deleteRecord: (id: string) => Promise<boolean>
   updateRecordTitle: (id: string, title: string) => Promise<boolean>
+  updateRecordTags: (id: string, tags: string[]) => Promise<boolean>
   searchHistory: (query: string) => Promise<UploadRecord[]>
   getSortedHistory: (sortBy: SortBy, order: SortOrder) => Promise<UploadRecord[]>
   removeAllListeners: (channel: string) => void

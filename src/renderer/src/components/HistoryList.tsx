@@ -9,6 +9,7 @@ interface HistoryListProps {
   onOpen: (link: string) => void
   onDelete: (id: string) => void
   onRename: (id: string, newTitle: string) => void
+  onUpdateTags: (id: string, tags: string[]) => void
   onClearAll: () => void
   searchQuery: string
 }
@@ -19,6 +20,7 @@ export function HistoryList({
   onOpen,
   onDelete,
   onRename,
+  onUpdateTags,
   onClearAll,
   searchQuery
 }: HistoryListProps) {
@@ -56,6 +58,7 @@ export function HistoryList({
           onOpen={onOpen}
           onDelete={onDelete}
           onRename={onRename}
+          onUpdateTags={onUpdateTags}
         />
       ))}
       

@@ -8,7 +8,8 @@ import {
   Chip,
   Tooltip,
   TextField,
-  InputAdornment
+  InputAdornment,
+  Popover
 } from '@mui/material'
 import {
   ContentCopy as CopyIcon,
@@ -18,7 +19,9 @@ import {
   Lock as LockIcon,
   Edit as EditIcon,
   Check as CheckIcon,
-  Close as CloseIcon
+  Close as CloseIcon,
+  LocalOffer as TagIcon,
+  Add as AddIcon
 } from '@mui/icons-material'
 import { UploadRecord } from '../env.d'
 
@@ -28,11 +31,16 @@ interface HistoryItemProps {
   onOpen: (link: string) => void
   onDelete: (id: string) => void
   onRename: (id: string, newTitle: string) => void
+  onUpdateTags: (id: string, tags: string[]) => void
 }
 
-export function HistoryItem({ item, onCopy, onOpen, onDelete, onRename }: HistoryItemProps) {
+export function HistoryItem({ item, onCopy, onOpen, onDelete, onRename, onUpdateTags }: HistoryItemProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editTitle, setEditTitle] = useState(item.title || item.filename)
+  
+  // Tag state
+  const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null)
+  const [newTag, setNewTag] = useState('')
 
   const formatTime = (timestamp: number): string => {
     const now = Date.now()
@@ -56,6 +64,7 @@ export function HistoryItem({ item, onCopy, onOpen, onDelete, onRename }: Histor
 
   const isEncrypted = item.filename.endsWith('.enc')
 
+  // Title handlers
   const handleSaveTitle = () => {
     if (editTitle.trim() && editTitle !== item.title) {
       onRename(item.id, editTitle.trim())
@@ -73,9 +82,40 @@ export function HistoryItem({ item, onCopy, onOpen, onDelete, onRename }: Histor
     if (e.key === 'Escape') handleCancelEdit()
   }
 
+  // Tag handlers
+  const handleAddTagClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget)
+  }
+
+  const handleCloseTagPopover = () => {
+    setAnchorEl(null)
+    setNewTag('')
+  }
+
+  const handleAddTag = () => {
+    if (newTag.trim()) {
+      const currentTags = item.tags || []
+      if (!currentTags.includes(newTag.trim())) {
+        onUpdateTags(item.id, [...currentTags, newTag.trim()])
+      }
+      handleCloseTagPopover()
+    }
+  }
+
+  const handleDeleteTag = (tagToDelete: string) => {
+    const currentTags = item.tags || []
+    onUpdateTags(item.id, currentTags.filter(tag => tag !== tagToDelete))
+  }
+
+  const handleTagKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleAddTag()
+    }
+  }
+
   return (
     <Card sx={{ mb: 1.5, position: 'relative', overflow: 'visible', transition: 'all 0.2s', '&:hover': { transform: 'translateY(-2px)', borderColor: 'primary.main' } }}>
-      <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, p: '12px 16px !important' }}>
+      <CardContent sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, p: '12px 16px !important' }}>
         {/* Thumbnail or Icon */}
         <Box
           sx={{
@@ -88,7 +128,8 @@ export function HistoryItem({ item, onCopy, onOpen, onDelete, onRename }: Histor
             justifyContent: 'center',
             border: '1px solid rgba(255,255,255,0.1)',
             overflow: 'hidden',
-            flexShrink: 0
+            flexShrink: 0,
+            mt: 0.5
           }}
         >
           {item.thumbnail ? (
@@ -144,7 +185,7 @@ export function HistoryItem({ item, onCopy, onOpen, onDelete, onRename }: Histor
             </Box>
           )}
 
-          {/* Link & Meta */}
+          {/* Link */}
           <Typography
             variant="caption"
             color="primary"
@@ -153,8 +194,9 @@ export function HistoryItem({ item, onCopy, onOpen, onDelete, onRename }: Histor
           >
             {item.link}
           </Typography>
-
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          
+          {/* Meta & Tags */}
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, alignItems: 'center' }}>
             <Chip
               label={formatSize(item.size)}
               size="small"
@@ -166,16 +208,29 @@ export function HistoryItem({ item, onCopy, onOpen, onDelete, onRename }: Histor
               variant="outlined"
               sx={{ height: 18, fontSize: '0.65rem' }}
             />
-            {isEncrypted && (
+            
+            {/* Display Tags */}
+            {item.tags?.map((tag) => (
               <Chip
-                icon={<LockIcon sx={{ fontSize: '10px !important' }} />}
-                label="Encrypted"
+                key={tag}
+                label={tag}
                 size="small"
                 color="secondary"
                 variant="outlined"
-                sx={{ height: 18, fontSize: '0.65rem', '& .MuiChip-icon': { ml: 0.5 } }}
+                onDelete={() => handleDeleteTag(tag)}
+                sx={{ height: 18, fontSize: '0.65rem' }}
               />
-            )}
+            ))}
+
+            {/* Add Tag Button */}
+            <IconButton 
+              size="small" 
+              onClick={handleAddTagClick}
+              sx={{ padding: 0.25, border: '1px dashed rgba(255,255,255,0.2)' }}
+              title="Add Tag"
+            >
+              <AddIcon sx={{ fontSize: 14 }} />
+            </IconButton>
           </Box>
         </Box>
 
@@ -202,6 +257,34 @@ export function HistoryItem({ item, onCopy, onOpen, onDelete, onRename }: Histor
           </Box>
         </Box>
       </CardContent>
+
+      {/* Add Tag Popover */}
+      <Popover
+        open={Boolean(anchorEl)}
+        anchorEl={anchorEl}
+        onClose={handleCloseTagPopover}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'left',
+        }}
+      >
+        <Box sx={{ p: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <TextField
+            size="small"
+            placeholder="New tag..."
+            value={newTag}
+            onChange={(e) => setNewTag(e.target.value)}
+            onKeyDown={handleTagKeyDown}
+            autoFocus
+            variant="standard"
+            sx={{ width: 100 }}
+          />
+          <IconButton size="small" onClick={handleAddTag} color="primary">
+            <CheckIcon fontSize="small" />
+          </IconButton>
+        </Box>
+      </Popover>
+
       <style>{`
         .MuiCard-root:hover .edit-btn { opacity: 0.5; }
         .edit-btn:hover { opacity: 1 !important; }

@@ -150,6 +150,18 @@ function App(): JSX.Element {
     }
   }
 
+  const handleUpdateTags = async (id: string, tags: string[]) => {
+    try {
+      await window.api.updateRecordTags(id, tags)
+      setHistory(prev => prev.map(item => 
+        item.id === id ? { ...item, tags } : item
+      ))
+    } catch (error) {
+      console.error('Failed to update tags:', error)
+      showToast('Failed to update tags', 'error')
+    }
+  }
+
   const updateConfig = async (key: keyof AppConfig, value: any) => {
     if (!config) return
     await window.api.setConfig(key, value)
@@ -193,6 +205,7 @@ function App(): JSX.Element {
               onOpen={openLink}
               onDelete={deleteRecord}
               onRename={handleRename}
+              onUpdateTags={handleUpdateTags}
               onClearAll={clearHistory}
               searchQuery={searchQuery}
             />

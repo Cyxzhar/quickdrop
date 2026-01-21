@@ -1,8 +1,9 @@
 import { createHash, createHmac, webcrypto } from 'crypto'
 import { nativeImage } from 'electron'
+import { createWorker } from 'tesseract.js'
 import { UploadRecord, ProgressCallback } from '../types'
 import { getConfig, isCloudflareConfigured } from '../config'
-import { addUploadRecord } from './history-store'
+import { addUploadRecord, updateUploadRecordText } from './history-store'
 
 // Generate a short unique ID (6 characters, alphanumeric)
 function generateShortId(): string {
@@ -60,6 +61,23 @@ async function encryptImage(buffer: Buffer, password: string): Promise<Buffer> {
   ])
 }
 
+// Process image for OCR in the background
+async function processOCR(id: string, buffer: Buffer) {
+  try {
+    const worker = await createWorker('eng')
+    const ret = await worker.recognize(buffer)
+    const text = ret.data.text
+    await worker.terminate()
+
+    if (text && text.trim().length > 0) {
+      console.log(`[OCR] Extracted ${text.length} chars for ${id}`)
+      updateUploadRecordText(id, text)
+    }
+  } catch (error) {
+    console.error(`[OCR] Failed for ${id}:`, error)
+  }
+}
+
 // Mock uploader for local development
 async function mockUpload(
   buffer: Buffer,
@@ -108,7 +126,7 @@ async function cloudflareR2Upload(
   // Create AWS Signature V4 for authentication
   const now = new Date()
   const dateStamp = now.toISOString().slice(0, 10).replace(/-/g, '')
-  const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, '')
+  const amzDate = now.toISOString().replace(/[:-]|"\.\d{3}/g, '')
   const region = 'auto'
   const service = 's3'
 
@@ -260,6 +278,10 @@ export async function uploadImage(
   }
 
   addUploadRecord(record)
+
+  // Start OCR in background (use original buffer to get text)
+  // This runs asynchronously
+  processOCR(record.id, buffer)
 
   return result.link
 }

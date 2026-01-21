@@ -81,28 +81,34 @@ export function updateUploadRecordTitle(id: string, title: string): boolean {
   return false
 }
 
+export function updateUploadRecordTags(id: string, tags: string[]): boolean {
+  const history = loadHistory()
+  const recordIndex = history.uploads.findIndex(record => record.id === id)
+
+  if (recordIndex !== -1) {
+    history.uploads[recordIndex].tags = tags
+    saveHistory(history)
+    return true
+  }
+  return false
+}
+
+export function updateUploadRecordText(id: string, text: string): boolean {
+  const history = loadHistory()
+  const recordIndex = history.uploads.findIndex(record => record.id === id)
+
+  if (recordIndex !== -1) {
+    history.uploads[recordIndex].text = text
+    saveHistory(history)
+    return true
+  }
+  return false
+}
+
 export function clearUploadHistory(): void {
   saveHistory({ uploads: [] })
 }
-
-export function cleanupExpiredRecords(): number {
-  const now = Date.now()
-  const history = loadHistory()
-  const originalLength = history.uploads.length
-  history.uploads = history.uploads.filter(record => record.expiresAt > now)
-  const removedCount = originalLength - history.uploads.length
-
-  if (removedCount > 0) {
-    saveHistory(history)
-  }
-
-  return removedCount
-}
-
-export function getRecentUploads(count: number = 10): UploadRecord[] {
-  return getUploadHistory().slice(0, count)
-}
-
+// ... (skip lines) ...
 // Search functionality
 export function searchHistory(query: string): UploadRecord[] {
   const history = loadHistory()
@@ -114,6 +120,8 @@ export function searchHistory(query: string): UploadRecord[] {
 
   return history.uploads.filter(record =>
     (record.title && record.title.toLowerCase().includes(lowerQuery)) ||
+    (record.tags && record.tags.some(tag => tag.toLowerCase().includes(lowerQuery))) ||
+    (record.text && record.text.toLowerCase().includes(lowerQuery)) ||
     record.link.toLowerCase().includes(lowerQuery) ||
     record.filename.toLowerCase().includes(lowerQuery) ||
     record.id.toLowerCase().includes(lowerQuery)
