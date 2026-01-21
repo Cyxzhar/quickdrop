@@ -114,7 +114,18 @@ export function HistoryItem({ item, onCopy, onOpen, onDelete, onRename, onUpdate
   }
 
   return (
-    <Card sx={{ mb: 1.5, position: 'relative', overflow: 'visible', transition: 'all 0.2s', '&:hover': { transform: 'translateY(-2px)', borderColor: 'primary.main' } }}>
+    <Card sx={{ 
+      mb: 1.5, 
+      position: 'relative', 
+      overflow: 'visible', 
+      transition: 'all 0.2s', 
+      bgcolor: 'background.paper',
+      '&:hover': { 
+        transform: 'translateY(-2px)', 
+        borderColor: 'primary.main',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+      } 
+    }}>
       <CardContent sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, p: '12px 16px !important' }}>
         {/* Thumbnail or Icon */}
         <Box
@@ -216,9 +227,8 @@ export function HistoryItem({ item, onCopy, onOpen, onDelete, onRename, onUpdate
                 label={tag}
                 size="small"
                 color="secondary"
-                variant="outlined"
                 onDelete={() => handleDeleteTag(tag)}
-                sx={{ height: 18, fontSize: '0.65rem' }}
+                sx={{ height: 18, fontSize: '0.65rem', fontWeight: 600 }}
               />
             ))}
 

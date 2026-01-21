@@ -4,18 +4,18 @@ export const darkTheme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#6366f1', // Indigo 500
+      main: '#3B82F6', // QuickDrop Blue
     },
     secondary: {
-      main: '#8b5cf6', // Violet 500
+      main: '#8B5CF6', // QuickDrop Purple
     },
     background: {
-      default: '#1a1a2e',
-      paper: '#1f1f3a',
+      default: '#0f172a', // Slate 900
+      paper: '#1e293b',   // Slate 800
     },
     text: {
-      primary: '#ffffff',
-      secondary: '#a0a0b0',
+      primary: '#f8fafc',
+      secondary: '#94a3b8',
     },
     success: {
       main: '#10b981',
@@ -51,7 +51,7 @@ export const darkTheme = createTheme({
         root: {
           backgroundImage: 'none',
           borderRadius: 12,
-          border: '1px solid #2d2d4a',
+          border: '1px solid #334155',
         },
       },
     },
@@ -68,10 +68,10 @@ export const darkTheme = createTheme({
           '& .MuiOutlinedInput-root': {
             borderRadius: 8,
             '& fieldset': {
-              borderColor: '#2d2d4a',
+              borderColor: '#334155',
             },
             '&:hover fieldset': {
-              borderColor: '#6366f1',
+              borderColor: '#3B82F6',
             },
           },
         },

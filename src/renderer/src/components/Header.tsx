@@ -41,24 +41,54 @@ export function Header({ status }: HeaderProps) {
         WebkitAppRegion: 'drag' // Allow dragging window
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
         <Box
           sx={{
-            width: 24,
-            height: 24,
-            bgcolor: 'primary.main',
-            borderRadius: 1,
+            width: 32,
+            height: 32,
+            borderRadius: 1.5,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontWeight: 'bold',
-            fontSize: 14,
-            color: 'white'
+            background: 'linear-gradient(135deg, #3B82F6, #8B5CF6)',
+            boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)',
+            position: 'relative',
+            overflow: 'hidden'
           }}
         >
-          Q
+          {/* SVG Dotted Frame */}
+          <Box 
+            sx={{ 
+              width: 16, 
+              height: 16, 
+              border: '1.5px dashed rgba(255,255,255,0.8)', 
+              borderRadius: 0.5 
+            }} 
+          />
+          {/* SVG Bolt */}
+          <Box
+            sx={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-30%, -60%)',
+              width: 12,
+              height: 16,
+              bgcolor: '#F59E0B',
+              clipPath: 'polygon(70% 0%, 0% 55%, 45% 55%, 30% 100%, 100% 45%, 55% 45%)'
+            }}
+          />
         </Box>
-        <Typography variant="subtitle1" fontWeight={700}>
+        <Typography 
+          variant="h6" 
+          sx={{ 
+            fontSize: '1rem', 
+            fontWeight: 800,
+            background: 'linear-gradient(135deg, #3B82F6, #8B5CF6)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent'
+          }}
+        >
           QuickDrop
         </Typography>
       </Box>
