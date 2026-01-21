@@ -1,4 +1,4 @@
-import { createHash, createHmac } from 'crypto'
+import { createHash, createHmac, webcrypto } from 'crypto'
 import { UploadRecord, ProgressCallback } from '../types'
 import { getConfig, isCloudflareConfigured } from '../config'
 import { addUploadRecord } from './history-store'
@@ -18,14 +18,56 @@ function sha256(data: string | Buffer): string {
   return createHash('sha256').update(data).digest('hex')
 }
 
+// Encrypt image using AES-GCM
+async function encryptImage(buffer: Buffer, password: string): Promise<Buffer> {
+  const salt = webcrypto.getRandomValues(new Uint8Array(16))
+  const iv = webcrypto.getRandomValues(new Uint8Array(12))
+
+  // Derive key: PBKDF2 with 100k iterations
+  const keyMaterial = await webcrypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(password),
+    { name: 'PBKDF2' },
+    false,
+    ['deriveKey']
+  )
+
+  const key = await webcrypto.subtle.deriveKey(
+    {
+      name: 'PBKDF2',
+      salt,
+      iterations: 100000,
+      hash: 'SHA-256'
+    },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt']
+  )
+
+  const ciphertext = await webcrypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    buffer
+  )
+
+  // Payload: salt (16) + iv (12) + ciphertext
+  return Buffer.concat([
+    Buffer.from(salt),
+    Buffer.from(iv),
+    Buffer.from(ciphertext)
+  ])
+}
+
 // Mock uploader for local development
 async function mockUpload(
   buffer: Buffer,
-  onProgress?: ProgressCallback
+  onProgress?: ProgressCallback,
+  isEncrypted: boolean = false
 ): Promise<{ id: string; link: string }> {
   const totalSize = buffer.length
   const steps = 5
-
+  
   // Simulate upload progress
   for (let i = 1; i <= steps; i++) {
     await new Promise(resolve => setTimeout(resolve, 100))
@@ -39,9 +81,10 @@ async function mockUpload(
   }
 
   const id = generateShortId()
-  const link = `https://drop.to/${id}`
+  // Append ?p=true if encrypted
+  const link = `https://drop.to/${id}${isEncrypted ? '?p=true' : ''}`
 
-  console.log(`[MockUpload] Uploaded ${buffer.length} bytes. ID: ${id}`)
+  console.log(`[MockUpload] Uploaded ${buffer.length} bytes. ID: ${id} (Encrypted: ${isEncrypted})`)
 
   return { id, link }
 }
@@ -49,11 +92,13 @@ async function mockUpload(
 // Real Cloudflare R2 uploader using S3-compatible API
 async function cloudflareR2Upload(
   buffer: Buffer,
-  onProgress?: ProgressCallback
+  onProgress?: ProgressCallback,
+  isEncrypted: boolean = false
 ): Promise<{ id: string; link: string }> {
   const config = getConfig()
   const id = generateShortId()
-  const filename = `${id}.png`
+  // Use .enc extension if encrypted
+  const filename = isEncrypted ? `${id}.enc` : `${id}.png`
 
   // Cloudflare R2 uses S3-compatible API
   const host = `${config.cloudflareAccountId}.r2.cloudflarestorage.com`
@@ -75,9 +120,11 @@ async function cloudflareR2Upload(
   const canonicalUri = `/${config.cloudflareR2Bucket}/${filename}`
   const canonicalQueryString = ''
 
+  const contentType = isEncrypted ? 'application/octet-stream' : 'image/png'
+
   const canonicalHeaders =
     `content-length:${buffer.length}\n` +
-    `content-type:image/png\n` +
+    `content-type:${contentType}\n` +
     `host:${host}\n` +
     `x-amz-content-sha256:${contentHash}\n` +
     `x-amz-date:${amzDate}\n`
@@ -135,7 +182,7 @@ async function cloudflareR2Upload(
   const response = await fetch(url, {
     method: 'PUT',
     headers: {
-      'Content-Type': 'image/png',
+      'Content-Type': contentType,
       'Content-Length': buffer.length.toString(),
       'Host': host,
       'X-Amz-Date': amzDate,
@@ -156,9 +203,9 @@ async function cloudflareR2Upload(
   }
 
   // Generate the public link using the worker URL
-  const link = `${config.cloudflareWorkerUrl}/${id}`
+  const link = `${config.cloudflareWorkerUrl}/${id}${isEncrypted ? '?p=true' : ''}`
 
-  console.log(`[CloudflareR2] Uploaded ${buffer.length} bytes. ID: ${id}`)
+  console.log(`[CloudflareR2] Uploaded ${buffer.length} bytes. ID: ${id} (Encrypted: ${isEncrypted})`)
 
   return { id, link }
 }
@@ -171,20 +218,35 @@ export async function uploadImage(
   const config = getConfig()
   const expiresAt = Date.now() + config.expiryHours * 60 * 60 * 1000
 
+  let uploadBuffer = buffer
+  let isEncrypted = false
+
+  // Check for password protection
+  if (config.enablePasswordProtection && config.defaultPassword) {
+    try {
+      console.log('Encrypting image before upload...')
+      uploadBuffer = await encryptImage(buffer, config.defaultPassword)
+      isEncrypted = true
+    } catch (error) {
+      console.error('Encryption failed:', error)
+      throw new Error('Failed to encrypt image')
+    }
+  }
+
   let result: { id: string; link: string }
 
   if (config.useMockUploader || !isCloudflareConfigured()) {
-    result = await mockUpload(buffer, onProgress)
+    result = await mockUpload(uploadBuffer, onProgress, isEncrypted)
   } else {
-    result = await cloudflareR2Upload(buffer, onProgress)
+    result = await cloudflareR2Upload(uploadBuffer, onProgress, isEncrypted)
   }
 
   // Create and store the upload record
   const record: UploadRecord = {
     id: result.id,
     link: result.link,
-    filename: `${result.id}.png`,
-    size: buffer.length,
+    filename: isEncrypted ? `${result.id}.enc` : `${result.id}.png`,
+    size: uploadBuffer.length,
     timestamp: Date.now(),
     expiresAt
   }

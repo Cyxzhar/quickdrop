@@ -458,6 +458,41 @@ function App(): JSX.Element {
             )}
 
             <div className="settings-section">
+              <h3>Security</h3>
+              <div className="settings-card">
+                <div className="settings-item">
+                  <div className="settings-item-info">
+                    <div className="settings-item-label">Password Protection</div>
+                    <div className="settings-item-desc">Encrypt uploads with a password</div>
+                  </div>
+                  <label className="toggle">
+                    <input
+                      type="checkbox"
+                      checked={config.enablePasswordProtection}
+                      onChange={(e) => updateConfig('enablePasswordProtection', e.target.checked)}
+                    />
+                    <span className="toggle-slider"></span>
+                  </label>
+                </div>
+                {config.enablePasswordProtection && (
+                   <div className="input-group" style={{marginTop: '12px', paddingBottom: '16px'}}>
+                    <label className="input-label">Default Password</label>
+                    <input
+                      type="password"
+                      className="input"
+                      placeholder="Enter password"
+                      value={config.defaultPassword || ''}
+                      onChange={(e) => updateConfig('defaultPassword', e.target.value)}
+                    />
+                    <div className="settings-item-desc" style={{marginTop: '8px', fontSize: '12px'}}>
+                       This password will be required to view your uploads.
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="settings-section">
               <h3>Keyboard Shortcut</h3>
               <div className="settings-card">
                 <div className="settings-item">

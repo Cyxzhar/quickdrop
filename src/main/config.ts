@@ -18,7 +18,9 @@ const defaultConfig: AppConfig = {
   screenshotsDirectory: '',
   expiryHours: 24,
   maxHistoryItems: 50,
-  useMockUploader: true
+  useMockUploader: true,
+  enablePasswordProtection: false,
+  defaultPassword: ''
 }
 
 function ensureConfigDir(): void {

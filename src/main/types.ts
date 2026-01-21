@@ -21,6 +21,8 @@ export interface AppConfig {
   expiryHours: number
   maxHistoryItems: number
   useMockUploader: boolean
+  enablePasswordProtection?: boolean
+  defaultPassword?: string
 }
 
 export type TrayStatus = 'idle' | 'uploading' | 'success' | 'error'

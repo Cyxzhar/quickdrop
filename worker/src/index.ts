@@ -114,6 +114,175 @@ function getViewerHTML(imageUrl: string, imageId: string): string {
 </html>`
 }
 
+// Password protected viewer HTML
+function getPasswordProtectedViewerHTML(imageUrl: string, imageId: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuickDrop - Password Protected</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      background: #0f0f23;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 20px;
+      color: white;
+    }
+    .container {
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+    }
+    .card {
+      background: #1a1a2e;
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+      border: 1px solid #2d2d4a;
+    }
+    .icon { font-size: 48px; margin-bottom: 24px; }
+    h2 { margin-bottom: 8px; }
+    p { color: #a0a0b0; margin-bottom: 24px; }
+    input {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #2d2d4a;
+      background: #0f0f23;
+      color: white;
+      margin-bottom: 16px;
+      font-size: 16px;
+    }
+    input:focus { outline: none; border-color: #6366f1; }
+    button {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: none;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    button:hover { opacity: 0.9; }
+    #status { margin-top: 16px; font-size: 14px; min-height: 20px; }
+    #image-wrapper { margin-top: 20px; display: none; }
+    img { max-width: 100%; border-radius: 8px; }
+    .footer { margin-top: 24px; font-size: 12px; color: #6b6b7b; }
+    .footer a { color: #6366f1; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="container" id="main-container">
+    <div class="card">
+      <div class="icon">🔒</div>
+      <h2>Password Protected</h2>
+      <p>Enter password to view this screenshot</p>
+      <input type="password" id="password" placeholder="Enter password" onkeyup="if(event.key==='Enter') decryptAndShow()">
+      <button onclick="decryptAndShow()">Unlock</button>
+      <div id="status"></div>
+    </div>
+  </div>
+  
+  <div id="image-wrapper" style="width: 100%; max-width: 1000px; text-align: center;">
+    <img id="decrypted-image">
+    <div style="margin-top: 20px;">
+        <a id="download-link" class="btn" style="color: #6366f1; text-decoration: none;">Download Decrypted</a>
+    </div>
+  </div>
+
+  <p class="footer">
+    Shared via <a href="https://quickdrop.app">QuickDrop</a>
+  </p>
+
+  <script>
+    async function decryptAndShow() {
+      const password = document.getElementById('password').value;
+      const status = document.getElementById('status');
+      
+      if (!password) {
+        status.textContent = 'Please enter a password';
+        status.style.color = '#ef4444';
+        return;
+      }
+
+      status.textContent = 'Decrypting...';
+      status.style.color = '#a0a0b0';
+
+      try {
+        // Fetch encrypted blob
+        const response = await fetch('${imageUrl}');
+        if (!response.ok) throw new Error('Failed to load image data');
+        const data = new Uint8Array(await response.arrayBuffer());
+
+        // Extract parts: salt(16) + iv(12) + ciphertext
+        if (data.length < 28) throw new Error('Invalid file format');
+        
+        const salt = data.slice(0, 16);
+        const iv = data.slice(16, 28);
+        const ciphertext = data.slice(28);
+
+        // Import password
+        const keyMaterial = await crypto.subtle.importKey(
+          'raw',
+          new TextEncoder().encode(password),
+          { name: 'PBKDF2' },
+          false,
+          ['deriveKey']
+        );
+
+        // Derive key
+        const key = await crypto.subtle.deriveKey(
+          {
+            name: 'PBKDF2',
+            salt: salt,
+            iterations: 100000,
+            hash: 'SHA-256'
+          },
+          keyMaterial,
+          { name: 'AES-GCM', length: 256 },
+          false,
+          ['decrypt']
+        );
+
+        // Decrypt
+        const decrypted = await crypto.subtle.decrypt(
+          { name: 'AES-GCM', iv: iv },
+          key,
+          ciphertext
+        );
+
+        // Show image
+        const blob = new Blob([decrypted], { type: 'image/png' });
+        const url = URL.createObjectURL(blob);
+        
+        document.getElementById('decrypted-image').src = url;
+        document.getElementById('download-link').href = url;
+        document.getElementById('download-link').download = '${imageId}.png';
+        
+        document.getElementById('main-container').style.display = 'none';
+        document.getElementById('image-wrapper').style.display = 'block';
+        
+      } catch (error) {
+        console.error(error);
+        status.textContent = 'Incorrect password or decryption failed';
+        status.style.color = '#ef4444';
+      }
+    }
+  </script>
+</body>
+</html>`
+}
+
 // Landing page HTML
 function getLandingHTML(): string {
   return `<!DOCTYPE html>
@@ -282,7 +451,8 @@ export default {
     }
 
     // Extract image ID from path (e.g., /abc123 or /abc123.png)
-    const imageId = path.slice(1).replace(/\.png$/, '')
+    // Supports both .png and .enc extensions
+    const imageId = path.slice(1).replace(/\.(png|enc)$/, '')
 
     // Validate image ID format (6 alphanumeric characters)
     if (!/^[a-z0-9]{6}$/.test(imageId)) {
@@ -292,17 +462,45 @@ export default {
       })
     }
 
-    const filename = `${imageId}.png`
-
-    // Check if requesting raw image
-    const wantsRawImage =
+    const wantsRaw =
       path.endsWith('.png') ||
+      path.endsWith('.enc') ||
       request.headers.get('Accept')?.includes('image/') ||
       url.searchParams.has('raw')
 
+    const isPasswordProtected = url.searchParams.has('p')
+
+    // Determine filename to look for
+    // If specifically requested .enc, look for that
+    // If specifically requested .png, look for that
+    // If generic ID, try based on p param or check existence
+    
     try {
-      // Fetch the object from R2
-      const object = await env.QUICKDROP_BUCKET.get(filename)
+      let object: R2ObjectBody | null = null
+      let isEncrypted = false
+
+      // 1. Try to find the file based on extension if provided
+      if (path.endsWith('.enc')) {
+        object = await env.QUICKDROP_BUCKET.get(`${imageId}.enc`)
+        if (object) isEncrypted = true
+      } else if (path.endsWith('.png')) {
+        object = await env.QUICKDROP_BUCKET.get(`${imageId}.png`)
+      } else {
+        // 2. No extension provided, try to guess or find
+        if (isPasswordProtected) {
+          object = await env.QUICKDROP_BUCKET.get(`${imageId}.enc`)
+          if (object) isEncrypted = true
+        } else {
+          // Try PNG first (most common)
+          object = await env.QUICKDROP_BUCKET.get(`${imageId}.png`)
+          
+          // Fallback to encrypted if PNG not found
+          if (!object) {
+            object = await env.QUICKDROP_BUCKET.get(`${imageId}.enc`)
+            if (object) isEncrypted = true
+          }
+        }
+      }
 
       if (!object) {
         return new Response(getErrorHTML('This image has expired or does not exist'), {
@@ -311,28 +509,37 @@ export default {
         })
       }
 
-      // Return raw image
-      if (wantsRawImage) {
-        const headers = new Headers()
-        headers.set('Content-Type', 'image/png')
-        headers.set('Cache-Control', 'public, max-age=3600')
-        headers.set('Access-Control-Allow-Origin', '*')
+      // If it's encrypted but we aren't asking for raw data (to decrypt),
+      // we must serve the password viewer
+      if (isEncrypted && !wantsRaw) {
+        // We serve the viewer, pointing the JS to fetch the raw .enc file
+        // The viewer JS will fetch /abc123.enc
+        const rawUrl = `${url.origin}/${imageId}.enc`
+        return new Response(getPasswordProtectedViewerHTML(rawUrl, imageId), {
+          headers: {
+            'Content-Type': 'text/html',
+            'Cache-Control': 'no-cache'
+          }
+        })
+      }
 
+      // Return raw image (or raw encrypted blob)
+      const headers = new Headers()
+      headers.set('Cache-Control', 'public, max-age=3600')
+      headers.set('Access-Control-Allow-Origin', '*')
+
+      if (isEncrypted) {
+        headers.set('Content-Type', 'application/octet-stream')
+        headers.set('Content-Disposition', `attachment; filename="${imageId}.enc"`)
+      } else {
+        headers.set('Content-Type', 'image/png')
         if (object.httpMetadata?.contentDisposition) {
           headers.set('Content-Disposition', object.httpMetadata.contentDisposition)
         }
-
-        return new Response(object.body, { headers })
       }
 
-      // Return HTML viewer page
-      const imageUrl = `${url.origin}/${imageId}.png`
-      return new Response(getViewerHTML(imageUrl, imageId), {
-        headers: {
-          'Content-Type': 'text/html',
-          'Cache-Control': 'no-cache'
-        }
-      })
+      return new Response(object.body, { headers })
+
     } catch (error) {
       console.error('Error fetching image:', error)
       return new Response(getErrorHTML('An error occurred while loading the image'), {
