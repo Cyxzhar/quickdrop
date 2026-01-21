@@ -1,11 +1,17 @@
-import { useState, useEffect, useCallback } from 'react'
-import './styles.css'
+import { useState, useEffect } from 'react'
+import { Box, Snackbar, Alert } from '@mui/material'
 import type { UploadRecord, AppConfig, UploadProgress, TrayStatus, SortBy, SortOrder } from './env.d'
 
-type Tab = 'history' | 'settings'
+// Components
+import { Header } from './components/Header'
+import { NavigationTabs } from './components/NavigationTabs'
+import { UploadProgressBar } from './components/UploadProgressBar'
+import { HistoryList } from './components/HistoryList'
+import { HistoryControls } from './components/HistoryControls'
+import { SettingsSection } from './components/SettingsSection'
 
 function App(): JSX.Element {
-  const [activeTab, setActiveTab] = useState<Tab>('history')
+  const [activeTab, setActiveTab] = useState('history')
   const [history, setHistory] = useState<UploadRecord[]>([])
   const [filteredHistory, setFilteredHistory] = useState<UploadRecord[]>([])
   const [config, setConfig] = useState<AppConfig | null>(null)
@@ -14,7 +20,7 @@ function App(): JSX.Element {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   const [isCloudflareConfigured, setIsCloudflareConfigured] = useState(false)
 
-  // New state for enhanced history features
+  // Enhanced history state
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState<SortBy>('timestamp')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
@@ -24,7 +30,7 @@ function App(): JSX.Element {
     loadData()
   }, [])
 
-  // Setup event listeners
+  // Event listeners
   useEffect(() => {
     window.api.onUploadSuccess((data) => {
       setHistory(prev => [data.record, ...prev])
@@ -56,6 +62,28 @@ function App(): JSX.Element {
     }
   }, [])
 
+  // Filtering logic
+  useEffect(() => {
+    // 1. Filter
+    let results = history
+    if (searchQuery.trim()) {
+      const lowerQuery = searchQuery.toLowerCase()
+      results = results.filter(item => 
+        item.link.toLowerCase().includes(lowerQuery) || 
+        item.filename.toLowerCase().includes(lowerQuery)
+      )
+    }
+
+    // 2. Sort
+    results = [...results].sort((a, b) => {
+      let aVal = a[sortBy]
+      let bVal = b[sortBy]
+      return sortOrder === 'asc' ? (aVal > bVal ? 1 : -1) : (aVal < bVal ? 1 : -1)
+    })
+
+    setFilteredHistory(results)
+  }, [history, searchQuery, sortBy, sortOrder])
+
   const loadData = async () => {
     try {
       const [historyData, configData, cloudflareStatus] = await Promise.all([
@@ -73,7 +101,10 @@ function App(): JSX.Element {
 
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type })
-    setTimeout(() => setToast(null), 3000)
+  }
+
+  const handleCloseToast = () => {
+    setToast(null)
   }
 
   const copyToClipboard = async (link: string) => {
@@ -93,7 +124,6 @@ function App(): JSX.Element {
     if (confirm('Clear all upload history?')) {
       await window.api.clearHistory()
       setHistory([])
-      setFilteredHistory([])
       showToast('History cleared', 'success')
     }
   }
@@ -102,39 +132,9 @@ function App(): JSX.Element {
     if (confirm('Delete this upload from history?')) {
       await window.api.deleteRecord(id)
       setHistory(prev => prev.filter(item => item.id !== id))
-      setFilteredHistory(prev => prev.filter(item => item.id !== id))
       showToast('Deleted from history', 'success')
     }
   }
-
-  const handleSearch = async (query: string) => {
-    setSearchQuery(query)
-    if (query.trim()) {
-      const results = await window.api.searchHistory(query)
-      setFilteredHistory(results)
-    } else {
-      applySort()
-    }
-  }
-
-  const applySort = async () => {
-    const sorted = await window.api.getSortedHistory(sortBy, sortOrder)
-    setFilteredHistory(sorted)
-  }
-
-  const toggleSortOrder = () => {
-    const newOrder = sortOrder === 'asc' ? 'desc' : 'asc'
-    setSortOrder(newOrder)
-  }
-
-  // Apply search and sort whenever history, sortBy, or sortOrder changes
-  useEffect(() => {
-    if (searchQuery.trim()) {
-      handleSearch(searchQuery)
-    } else {
-      applySort()
-    }
-  }, [history, sortBy, sortOrder])
 
   const updateConfig = async (key: keyof AppConfig, value: any) => {
     if (!config) return
@@ -147,395 +147,70 @@ function App(): JSX.Element {
     }
   }
 
-  const formatTime = (timestamp: number): string => {
-    const now = Date.now()
-    const diff = now - timestamp
-    const seconds = Math.floor(diff / 1000)
-    const minutes = Math.floor(seconds / 60)
-    const hours = Math.floor(minutes / 60)
-    const days = Math.floor(hours / 24)
-
-    if (seconds < 60) return 'Just now'
-    if (minutes < 60) return `${minutes}m ago`
-    if (hours < 24) return `${hours}h ago`
-    return `${days}d ago`
-  }
-
-  const formatSize = (bytes: number): string => {
-    if (bytes < 1024) return `${bytes} B`
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-    return `${(bytes / 1024 / 1024).toFixed(1)} MB`
-  }
-
-  const getStatusLabel = (): string => {
-    switch (status) {
-      case 'idle': return 'Ready'
-      case 'uploading': return 'Uploading...'
-      case 'success': return 'Uploaded'
-      case 'error': return 'Error'
-      default: return 'Ready'
-    }
+  const toggleSortOrder = () => {
+    setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')
   }
 
   return (
-    <div className="app">
-      {/* Header */}
-      <header className="header">
-        <div className="header-left">
-          <div className="logo">Q</div>
-          <h1>QuickDrop</h1>
-        </div>
-        <div className={`status-badge ${status}`}>
-          <span className="status-dot"></span>
-          <span>{getStatusLabel()}</span>
-        </div>
-      </header>
-
-      {/* Navigation */}
-      <nav className="nav-tabs">
-        <button
-          className={`nav-tab ${activeTab === 'history' ? 'active' : ''}`}
-          onClick={() => setActiveTab('history')}
-        >
-          History
-        </button>
-        <button
-          className={`nav-tab ${activeTab === 'settings' ? 'active' : ''}`}
-          onClick={() => setActiveTab('settings')}
-        >
-          Settings
-        </button>
-      </nav>
-
-      {/* Content */}
-      <main className="content">
-        {/* Upload Progress */}
-        {progress && status === 'uploading' && (
-          <div className="upload-progress">
-            <div className="progress-header">
-              <span>Uploading...</span>
-              <span>{progress.percentage}%</span>
-            </div>
-            <div className="progress-bar">
-              <div
-                className="progress-fill"
-                style={{ width: `${progress.percentage}%` }}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* History Tab */}
-        {activeTab === 'history' && (
-          <>
-            {history.length === 0 ? (
-              <div className="empty-state">
-                <div className="empty-state-icon">📸</div>
-                <h3>No uploads yet</h3>
-                <p>Take a screenshot and it will automatically be uploaded. The link will be copied to your clipboard.</p>
-              </div>
-            ) : (
-              <>
-                {/* Search and Sort Controls */}
-                <div className="history-controls">
-                  <input
-                    type="text"
-                    className="search-input"
-                    placeholder="Search uploads..."
-                    value={searchQuery}
-                    onChange={(e) => handleSearch(e.target.value)}
-                  />
-                  <div className="sort-controls">
-                    <select
-                      className="select"
-                      value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value as SortBy)}
-                    >
-                      <option value="timestamp">Date</option>
-                      <option value="size">Size</option>
-                      <option value="expiresAt">Expiry</option>
-                    </select>
-                    <button
-                      className="btn-icon"
-                      onClick={toggleSortOrder}
-                      title={`Sort ${sortOrder === 'asc' ? 'ascending' : 'descending'}`}
-                    >
-                      {sortOrder === 'asc' ? '↑' : '↓'}
-                    </button>
-                  </div>
-                </div>
-
-                {/* History List */}
-                <div className="history-list">
-                  {filteredHistory.map((item) => (
-                    <div key={item.id} className="history-item">
-                      <div className="history-item-icon">🖼️</div>
-                      <div className="history-item-info">
-                        <span
-                          className="history-item-link"
-                          onClick={() => copyToClipboard(item.link)}
-                        >
-                          {item.link}
-                        </span>
-                        <div className="history-item-meta">
-                          <span>{formatSize(item.size)}</span>
-                          <span>{formatTime(item.timestamp)}</span>
-                        </div>
-                      </div>
-                      <div className="history-item-actions">
-                        <button
-                          className="btn-icon"
-                          onClick={() => copyToClipboard(item.link)}
-                          title="Copy link"
-                        >
-                          📋
-                        </button>
-                        <button
-                          className="btn-icon"
-                          onClick={() => openLink(item.link)}
-                          title="Open in browser"
-                        >
-                          🔗
-                        </button>
-                        <button
-                          className="btn-icon btn-delete"
-                          onClick={() => deleteRecord(item.id)}
-                          title="Delete"
-                        >
-                          🗑️
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {filteredHistory.length === 0 && searchQuery && (
-                  <div className="empty-state">
-                    <div className="empty-state-icon">🔍</div>
-                    <h3>No results found</h3>
-                    <p>No uploads match your search "{searchQuery}"</p>
-                  </div>
-                )}
-
-                <div style={{ marginTop: '20px', textAlign: 'center' }}>
-                  <button className="btn btn-danger" onClick={clearHistory}>
-                    Clear All History
-                  </button>
-                </div>
-              </>
-            )}
-          </>
-        )}
-
-        {/* Settings Tab */}
-        {activeTab === 'settings' && config && (
-          <>
-            <div className="settings-section">
-              <h3>General</h3>
-              <div className="settings-card">
-                <div className="settings-item">
-                  <div className="settings-item-info">
-                    <div className="settings-item-label">Auto-upload Screenshots</div>
-                    <div className="settings-item-desc">Automatically upload when a screenshot is copied</div>
-                  </div>
-                  <label className="toggle">
-                    <input
-                      type="checkbox"
-                      checked={config.autoUpload}
-                      onChange={(e) => updateConfig('autoUpload', e.target.checked)}
-                    />
-                    <span className="toggle-slider"></span>
-                  </label>
-                </div>
-                <div className="settings-item">
-                  <div className="settings-item-info">
-                    <div className="settings-item-label">Expiry Time</div>
-                    <div className="settings-item-desc">How long uploaded images stay active</div>
-                  </div>
-                  <select
-                    className="select"
-                    value={config.expiryHours}
-                    onChange={(e) => updateConfig('expiryHours', parseInt(e.target.value))}
-                    style={{ width: '120px' }}
-                  >
-                    <option value={1}>1 hour</option>
-                    <option value={12}>12 hours</option>
-                    <option value={24}>24 hours</option>
-                    <option value={168}>7 days</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div className="settings-section">
-              <h3>Upload Mode</h3>
-              <div className="settings-card">
-                <div className="settings-item">
-                  <div className="settings-item-info">
-                    <div className="settings-item-label">Use Mock Uploader</div>
-                    <div className="settings-item-desc">For development/testing (links won't actually work)</div>
-                  </div>
-                  <label className="toggle">
-                    <input
-                      type="checkbox"
-                      checked={config.useMockUploader}
-                      onChange={(e) => updateConfig('useMockUploader', e.target.checked)}
-                    />
-                    <span className="toggle-slider"></span>
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            {!config.useMockUploader && (
-              <div className="settings-section">
-                <h3>Cloudflare R2 Configuration</h3>
-                <div className="settings-card" style={{ padding: '16px' }}>
-                  <div className="input-group">
-                    <label className="input-label">Account ID</label>
-                    <input
-                      type="text"
-                      className="input"
-                      placeholder="Your Cloudflare Account ID"
-                      value={config.cloudflareAccountId}
-                      onChange={(e) => updateConfig('cloudflareAccountId', e.target.value)}
-                    />
-                  </div>
-                  <div className="input-group">
-                    <label className="input-label">Access Key ID</label>
-                    <input
-                      type="text"
-                      className="input"
-                      placeholder="R2 Access Key ID"
-                      value={config.cloudflareAccessKeyId}
-                      onChange={(e) => updateConfig('cloudflareAccessKeyId', e.target.value)}
-                    />
-                  </div>
-                  <div className="input-group">
-                    <label className="input-label">Secret Access Key</label>
-                    <input
-                      type="password"
-                      className="input"
-                      placeholder="R2 Secret Access Key"
-                      value={config.cloudflareSecretAccessKey}
-                      onChange={(e) => updateConfig('cloudflareSecretAccessKey', e.target.value)}
-                    />
-                  </div>
-                  <div className="input-group">
-                    <label className="input-label">R2 Bucket Name</label>
-                    <input
-                      type="text"
-                      className="input"
-                      placeholder="quickdrop"
-                      value={config.cloudflareR2Bucket}
-                      onChange={(e) => updateConfig('cloudflareR2Bucket', e.target.value)}
-                    />
-                  </div>
-                  <div className="input-group">
-                    <label className="input-label">Worker URL</label>
-                    <input
-                      type="text"
-                      className="input"
-                      placeholder="https://your-worker.workers.dev"
-                      value={config.cloudflareWorkerUrl}
-                      onChange={(e) => updateConfig('cloudflareWorkerUrl', e.target.value)}
-                    />
-                  </div>
-                  <div style={{
-                    marginTop: '16px',
-                    padding: '12px',
-                    background: isCloudflareConfigured ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-                    borderRadius: '8px',
-                    fontSize: '13px',
-                    color: isCloudflareConfigured ? 'var(--success)' : 'var(--warning)'
-                  }}>
-                    {isCloudflareConfigured
-                      ? '✓ Cloudflare R2 is configured and ready'
-                      : '⚠ Complete all fields to enable cloud upload'}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="settings-section">
-              <h3>Security</h3>
-              <div className="settings-card">
-                <div className="settings-item">
-                  <div className="settings-item-info">
-                    <div className="settings-item-label">Password Protection</div>
-                    <div className="settings-item-desc">Encrypt uploads with a password</div>
-                  </div>
-                  <label className="toggle">
-                    <input
-                      type="checkbox"
-                      checked={config.enablePasswordProtection}
-                      onChange={(e) => updateConfig('enablePasswordProtection', e.target.checked)}
-                    />
-                    <span className="toggle-slider"></span>
-                  </label>
-                </div>
-                {config.enablePasswordProtection && (
-                   <div className="input-group" style={{marginTop: '12px', paddingBottom: '16px'}}>
-                    <label className="input-label">Default Password</label>
-                    <input
-                      type="password"
-                      className="input"
-                      placeholder="Enter password"
-                      value={config.defaultPassword || ''}
-                      onChange={(e) => updateConfig('defaultPassword', e.target.value)}
-                    />
-                    <div className="settings-item-desc" style={{marginTop: '8px', fontSize: '12px'}}>
-                       This password will be required to view your uploads.
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="settings-section">
-              <h3>Keyboard Shortcut</h3>
-              <div className="settings-card">
-                <div className="settings-item">
-                  <div className="settings-item-info">
-                    <div className="settings-item-label">Show/Hide Window</div>
-                    <div className="settings-item-desc">Quick access to QuickDrop</div>
-                  </div>
-                  <div className="shortcut-hint">
-                    <span className="shortcut-key">⌘</span>
-                    <span className="shortcut-key">⇧</span>
-                    <span className="shortcut-key">Q</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-      </main>
-
-      {/* Footer */}
-      <footer className="footer">
-        <span className="footer-text">
-          QuickDrop v1.0.0 • {config?.useMockUploader ? 'Mock Mode' : 'Cloud Mode'}
-        </span>
-        <a
-          href="https://github.com/quickdrop"
-          className="footer-link"
-          onClick={(e) => {
-            e.preventDefault()
-            openLink('https://github.com/quickdrop')
-          }}
-        >
-          GitHub
-        </a>
-      </footer>
-
-      {/* Toast Notification */}
-      {toast && (
-        <div className={`toast ${toast.type}`}>
-          {toast.type === 'success' ? '✓' : '✕'} {toast.message}
-        </div>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', bgcolor: 'background.default' }}>
+      <Header status={status} />
+      
+      <NavigationTabs value={activeTab} onChange={setActiveTab} />
+      
+      {progress && status === 'uploading' && (
+        <UploadProgressBar progress={progress} />
       )}
-    </div>
+
+      <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        {activeTab === 'history' && (
+          <Box sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <HistoryControls
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              sortBy={sortBy}
+              onSortByChange={setSortBy}
+              sortOrder={sortOrder}
+              onToggleSortOrder={toggleSortOrder}
+            />
+            
+            <HistoryList
+              history={filteredHistory}
+              onCopy={copyToClipboard}
+              onOpen={openLink}
+              onDelete={deleteRecord}
+              onClearAll={clearHistory}
+              searchQuery={searchQuery}
+            />
+          </Box>
+        )}
+
+        {activeTab === 'settings' && config && (
+          <Box sx={{ height: '100%', overflowY: 'auto' }}>
+            <SettingsSection
+              config={config}
+              onUpdateConfig={updateConfig}
+              isCloudflareConfigured={isCloudflareConfigured}
+            />
+          </Box>
+        )}
+      </Box>
+
+      <Snackbar
+        open={!!toast}
+        autoHideDuration={3000}
+        onClose={handleCloseToast}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={handleCloseToast} 
+          severity={toast?.type} 
+          variant="filled" 
+          sx={{ width: '100%' }}
+        >
+          {toast?.message}
+        </Alert>
+      </Snackbar>
+    </Box>
   )
 }
 
