@@ -3,6 +3,7 @@
 # scripts/auto-commit.sh
 
 # Ensure we are in the project root
+export PATH=$PATH:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$PROJECT_ROOT" || exit 1
 
