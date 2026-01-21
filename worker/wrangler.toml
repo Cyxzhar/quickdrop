@@ -1,6 +1,7 @@
 name = "quickdrop-worker"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
+account_id = "c13bb970676201093815112157055bdb"
 
 # R2 bucket binding
 [[r2_buckets]]

@@ -1,5 +1,4 @@
-import { v4 as uuidv4 } from 'uuid'
-import { createHmac } from 'crypto'
+import { createHash, createHmac } from 'crypto'
 import { UploadRecord, ProgressCallback } from '../types'
 import { getConfig, isCloudflareConfigured } from '../config'
 import { addUploadRecord } from './history-store'
@@ -14,9 +13,9 @@ function generateShortId(): string {
   return id
 }
 
-// Calculate file hash for deduplication (optional)
-function calculateHash(buffer: Buffer): string {
-  return createHmac('sha256', 'quickdrop').update(buffer).digest('hex').slice(0, 12)
+// SHA-256 hash function
+function sha256(data: string | Buffer): string {
+  return createHash('sha256').update(data).digest('hex')
 }
 
 // Mock uploader for local development
@@ -57,8 +56,8 @@ async function cloudflareR2Upload(
   const filename = `${id}.png`
 
   // Cloudflare R2 uses S3-compatible API
-  const endpoint = `https://${config.cloudflareAccountId}.r2.cloudflarestorage.com`
-  const url = `${endpoint}/${config.cloudflareR2Bucket}/${filename}`
+  const host = `${config.cloudflareAccountId}.r2.cloudflarestorage.com`
+  const url = `https://${host}/${config.cloudflareR2Bucket}/${filename}`
 
   // Create AWS Signature V4 for authentication
   const now = new Date()
@@ -69,42 +68,42 @@ async function cloudflareR2Upload(
 
   const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`
 
-  // Canonical request
+  // Calculate content hash using SHA-256 (NOT HMAC)
+  const contentHash = sha256(buffer)
+
+  // Canonical request components
   const canonicalUri = `/${config.cloudflareR2Bucket}/${filename}`
   const canonicalQueryString = ''
-  const contentHash = createHmac('sha256', '')
-    .update(buffer)
-    .digest('hex')
 
-  const canonicalHeaders = [
-    `content-length:${buffer.length}`,
-    `content-type:image/png`,
-    `host:${config.cloudflareAccountId}.r2.cloudflarestorage.com`,
-    `x-amz-content-sha256:${contentHash}`,
-    `x-amz-date:${amzDate}`
-  ].join('\n') + '\n'
+  const canonicalHeaders =
+    `content-length:${buffer.length}\n` +
+    `content-type:image/png\n` +
+    `host:${host}\n` +
+    `x-amz-content-sha256:${contentHash}\n` +
+    `x-amz-date:${amzDate}\n`
 
   const signedHeaders = 'content-length;content-type;host;x-amz-content-sha256;x-amz-date'
 
-  const canonicalRequest = [
-    'PUT',
-    canonicalUri,
-    canonicalQueryString,
-    canonicalHeaders,
-    signedHeaders,
-    contentHash
-  ].join('\n')
+  const canonicalRequest =
+    `PUT\n` +
+    `${canonicalUri}\n` +
+    `${canonicalQueryString}\n` +
+    `${canonicalHeaders}\n` +
+    `${signedHeaders}\n` +
+    `${contentHash}`
+
+  // Hash the canonical request using SHA-256 (NOT HMAC)
+  const canonicalRequestHash = sha256(canonicalRequest)
 
   // String to sign
-  const stringToSign = [
-    'AWS4-HMAC-SHA256',
-    amzDate,
-    credentialScope,
-    createHmac('sha256', '').update(canonicalRequest).digest('hex')
-  ].join('\n')
+  const stringToSign =
+    `AWS4-HMAC-SHA256\n` +
+    `${amzDate}\n` +
+    `${credentialScope}\n` +
+    `${canonicalRequestHash}`
 
-  // Calculate signature
-  const getSignatureKey = (key: string, dateStamp: string, region: string, service: string) => {
+  // Calculate signature key using HMAC-SHA256
+  const getSignatureKey = (key: string, dateStamp: string, region: string, service: string): Buffer => {
     const kDate = createHmac('sha256', `AWS4${key}`).update(dateStamp).digest()
     const kRegion = createHmac('sha256', kDate).update(region).digest()
     const kService = createHmac('sha256', kRegion).update(service).digest()
@@ -118,25 +117,27 @@ async function cloudflareR2Upload(
     region,
     service
   )
+
+  // Calculate final signature using HMAC-SHA256
   const signature = createHmac('sha256', signingKey).update(stringToSign).digest('hex')
 
-  const authorizationHeader = [
-    `AWS4-HMAC-SHA256 Credential=${config.cloudflareAccessKeyId}/${credentialScope}`,
-    `SignedHeaders=${signedHeaders}`,
+  const authorizationHeader =
+    `AWS4-HMAC-SHA256 Credential=${config.cloudflareAccessKeyId}/${credentialScope}, ` +
+    `SignedHeaders=${signedHeaders}, ` +
     `Signature=${signature}`
-  ].join(', ')
 
   // Report initial progress
   if (onProgress) {
     onProgress({ uploaded: 0, total: buffer.length, percentage: 0 })
   }
 
-  // Perform the upload (convert Buffer to Uint8Array for fetch compatibility)
+  // Perform the upload
   const response = await fetch(url, {
     method: 'PUT',
     headers: {
       'Content-Type': 'image/png',
       'Content-Length': buffer.length.toString(),
+      'Host': host,
       'X-Amz-Date': amzDate,
       'X-Amz-Content-SHA256': contentHash,
       'Authorization': authorizationHeader
