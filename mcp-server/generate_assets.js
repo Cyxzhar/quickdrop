@@ -7,16 +7,15 @@ dotenv.config();
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY);
 
-async function generateAndSaveImage(prompt, outputName) {
+async function generateAndSaveImage(prompt, outputName, modelName = "gemini-2.5-flash-image") {
   try {
-    console.log(`Generating: ${outputName}...`);
-    
-    // Attempting to use the gemini-2.0-flash experimental model which supports image generation in its generation flow
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp-image-generation" });
+    console.log(`Generating with ${modelName}: ${outputName}...`);
+    const model = genAI.getGenerativeModel({ model: modelName });
 
-    // For image generation models in the Gemini family, 
-    // the request usually expects a prompt that triggers image output.
-    const result = await model.generateContent(prompt);
+    const result = await model.generateContent({
+      contents: [{ role: "user", parts: [{ text: "GENERATE_IMAGE: " + prompt }] }],
+    });
+    
     const response = await result.response;
     
     const assetsDir = path.join(__dirname, "..", "assets", "generated");
@@ -25,35 +24,58 @@ async function generateAndSaveImage(prompt, outputName) {
     }
 
     const filePath = path.join(assetsDir, outputName);
+    let imageSaved = false;
     
-    // Extracting image data from response
-    // Response structure for image generation models might include inlineData or parts with images
-    const parts = response.candidates[0].content.parts;
-    const imagePart = parts.find(p => p.inlineData && p.inlineData.mimeType.startsWith("image/"));
-
-    if (imagePart) {
-      const buffer = Buffer.from(imagePart.inlineData.data, 'base64');
-      fs.writeFileSync(filePath, buffer);
-      console.log(`Successfully saved ${outputName} to ${filePath}`);
-    } else {
-      console.log(`No image part found in response for ${outputName}.`);
-      console.log("Full response text:", response.text());
+    if (response.candidates && response.candidates[0].content.parts) {
+      for (const part of response.candidates[0].content.parts) {
+        if (part.inlineData && part.inlineData.mimeType.startsWith("image/")) {
+          const buffer = Buffer.from(part.inlineData.data, 'base64');
+          fs.writeFileSync(filePath, buffer);
+          console.log(`Successfully saved ${outputName} to ${filePath}`);
+          imageSaved = true;
+          break;
+        }
+      }
     }
+
+    if (!imageSaved) {
+      console.log(`No image part found in response for ${outputName}.`);
+    }
+    
+    return imageSaved;
   } catch (error) {
     console.error(`Error generating ${outputName}:`, error.message);
-    if (error.response) {
-      console.error("Response data:", JSON.stringify(error.response, null, 2));
-    }
+    return false;
   }
 }
 
 async function run() {
-  const iconPrompt = "Generate a professional 1024x1024 PNG app icon for a screenshot tool. Dotted rectangle frame with a golden lightning bolt overlay. Blue to purple gradient background. Modern macOS Big Sur aesthetic.";
-  
-  const heroPrompt = "Generate a 16:9 professional marketing hero image for a software called QuickDrop. Show a sleek macOS desktop with a notification that says 'Link copied!'. Modern SaaS style, high quality.";
+  const assets = [
+    {
+      prompt: "A 32x32 favicon icon for a screenshot app, featuring a simplified golden lightning bolt on a blue background, professional minimal design.",
+      name: "favicon.png"
+    },
+    {
+      prompt: "A 1200x630 Open Graph sharing image for 'QuickDrop'. Central logo with text 'Screenshot to link in 1 second'. Vibrant blue/purple gradient background, professional tech style.",
+      name: "og-image.png"
+    },
+    {
+      prompt: "A professional illustration representing 'Instant Speed' for a tech app. A lightning bolt moving through a digital space, blue and amber colors, flat vector style.",
+      name: "feature-speed.png"
+    },
+    {
+      prompt: "A professional illustration representing 'Privacy & Security'. A stylized shield or lock with a clock showing 24h expiry. Clean vector style, purple and green colors.",
+      name: "feature-privacy.png"
+    },
+    {
+      prompt: "A Twitter header image for QuickDrop app. Text 'QuickDrop - Screenshot sharing evolved'. Space for profile picture on the left. Tech-focused abstract background.",
+      name: "twitter-header.png"
+    }
+  ];
 
-  await generateAndSaveImage(iconPrompt, "app_icon.png");
-  await generateAndSaveImage(heroPrompt, "hero_image.png");
+  for (const asset of assets) {
+    await generateAndSaveImage(asset.prompt, asset.name);
+  }
 }
 
 run();
