@@ -4,13 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>QuickDrop - Screenshot to Link in 1 Second</title>
-  <link rel="icon" type="image/png" href="assets/generated/favicon.png">
+  <link rel="icon" type="image/png" href="assets/favicon.png">
   <meta name="description" content="Transform screenshots into shareable links instantly. Auto-upload, 24h auto-expiry, cross-platform. 100% free forever.">
 
   <!-- Open Graph -->
   <meta property="og:title" content="QuickDrop - Screenshot Sharing Made Simple">
   <meta property="og:description" content="Transform screenshots into shareable links instantly. No apps to open, no files to find, no BS.">
-  <meta property="og:image" content="assets/generated/og-image.png">
+  <meta property="og:image" content="assets/og-image.png">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://quickdrop.pages.dev">
 
@@ -18,10 +18,10 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="QuickDrop - Screenshot to Link in 1 Second">
   <meta name="twitter:description" content="Transform screenshots into shareable links instantly">
-  <meta name="twitter:image" content="assets/generated/twitter-header.png">
+  <meta name="twitter:image" content="assets/twitter-header.png">
 
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
     * {
       margin: 0;
@@ -30,18 +30,13 @@
     }
 
     :root {
-      --bg-primary: #020617;
-      --bg-secondary: #0f172a;
-      --bg-tertiary: #1e293b;
-      --accent-primary: #3b82f6;
-      --accent-secondary: #8b5cf6;
-      --accent-gradient: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-      --text-primary: #f8fafc;
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #13131a;
+      --accent: #6366f1;
+      --accent-light: #818cf8;
+      --text-primary: #ffffff;
       --text-secondary: #94a3b8;
-      --text-muted: #64748b;
-      --success: #10b981;
-      --border: rgba(255, 255, 255, 0.08);
-      --glass: rgba(15, 23, 42, 0.8);
+      --border: rgba(255, 255, 255, 0.06);
     }
 
     html {
@@ -54,29 +49,61 @@
       color: var(--text-primary);
       line-height: 1.6;
       overflow-x: hidden;
+      position: relative;
     }
 
-    .container {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 0 24px;
+    /* Animated Background */
+    .bg-gradient {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background: radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+                  radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
+                  radial-gradient(circle at 40% 90%, rgba(59, 130, 246, 0.1) 0%, transparent 50%);
+      animation: gradientShift 15s ease infinite;
+    }
+
+    @keyframes gradientShift {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.8; }
+    }
+
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 50px 50px;
+      pointer-events: none;
+    }
+
+    .content-wrapper {
+      position: relative;
+      z-index: 2;
     }
 
     /* Navigation */
     nav {
-      height: 80px;
-      display: flex;
-      align-items: center;
       position: sticky;
       top: 0;
-      background: var(--glass);
-      backdrop-filter: blur(12px);
+      backdrop-filter: blur(20px);
+      background: rgba(10, 10, 15, 0.8);
       border-bottom: 1px solid var(--border);
       z-index: 1000;
+      transition: all 0.3s ease;
     }
 
-    nav .container {
-      width: 100%;
+    nav.scrolled {
+      background: rgba(10, 10, 15, 0.95);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .nav-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px 32px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -86,606 +113,627 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      font-size: 22px;
+      font-size: 24px;
       font-weight: 800;
       letter-spacing: -0.02em;
+      color: var(--text-primary);
+      text-decoration: none;
     }
 
     .logo-icon {
-      width: 36px;
-      height: 36px;
-      background: var(--accent-gradient);
-      border-radius: 10px;
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+      box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
     }
 
     .nav-links {
       display: flex;
-      gap: 40px;
+      gap: 32px;
       align-items: center;
     }
 
     .nav-links a {
       color: var(--text-secondary);
       text-decoration: none;
-      font-size: 14px;
       font-weight: 500;
-      transition: all 0.2s;
+      font-size: 15px;
+      transition: color 0.3s ease;
+      position: relative;
     }
 
     .nav-links a:hover {
-      color: var(--accent-primary);
+      color: var(--text-primary);
     }
 
-    .nav-github {
-      background: var(--bg-tertiary);
-      padding: 8px 16px;
-      border-radius: 8px;
-      color: var(--text-primary) !important;
-      border: 1px solid var(--border);
+    .nav-links a::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background: var(--accent);
+      transition: width 0.3s ease;
+    }
+
+    .nav-links a:hover::after {
+      width: 100%;
     }
 
     /* Hero Section */
     .hero {
-      padding: 140px 0 100px;
-      position: relative;
-    }
-
-    .hero::before {
-      content: "";
-      position: absolute;
-      top: -200px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 800px;
-      height: 600px;
-      background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
-      z-index: -1;
+      min-height: 90vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 32px;
+      text-align: center;
     }
 
     .hero-content {
-      text-align: center;
-      max-width: 800px;
-      margin: 0 auto;
+      max-width: 900px;
+      animation: fadeInUp 0.8s ease;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     .badge {
-      display: inline-block;
-      padding: 6px 14px;
-      background: rgba(59, 130, 246, 0.1);
-      border: 1px solid rgba(59, 130, 246, 0.2);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid rgba(99, 102, 241, 0.3);
       border-radius: 100px;
-      color: var(--accent-primary);
-      font-size: 12px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 24px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent-light);
+      margin-bottom: 32px;
+      animation: pulse 2s ease infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
+      50% { box-shadow: 0 0 0 10px rgba(99, 102, 241, 0); }
     }
 
     .hero h1 {
-      font-size: 72px;
-      font-weight: 800;
-      line-height: 1.05;
-      letter-spacing: -0.04em;
+      font-size: clamp(40px, 8vw, 72px);
+      font-weight: 900;
+      line-height: 1.1;
       margin-bottom: 24px;
-      background: linear-gradient(to bottom, #fff 40%, #94a3b8);
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #ffffff 0%, #94a3b8 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
 
-    .hero .subtitle {
+    .gradient-text {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 50%, #8b5cf6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p {
       font-size: 20px;
       color: var(--text-secondary);
       margin-bottom: 48px;
       max-width: 600px;
       margin-left: auto;
       margin-right: auto;
+      line-height: 1.6;
     }
 
     .cta-group {
       display: flex;
       gap: 16px;
       justify-content: center;
-      margin-bottom: 80px;
+      flex-wrap: wrap;
     }
 
     .btn {
-      padding: 14px 28px;
-      border-radius: 10px;
-      font-size: 15px;
+      padding: 16px 40px;
+      font-size: 16px;
       font-weight: 600;
-      cursor: pointer;
+      border-radius: 12px;
       text-decoration: none;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all 0.3s ease;
+      cursor: pointer;
+      border: none;
       display: inline-flex;
       align-items: center;
       gap: 10px;
+      white-space: nowrap;
     }
 
     .btn-primary {
-      background: var(--accent-gradient);
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
       color: white;
-      box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.4);
+      box-shadow: 0 8px 30px rgba(99, 102, 241, 0.4);
     }
 
     .btn-primary:hover {
       transform: translateY(-2px);
-      box-shadow: 0 20px 35px -10px rgba(59, 130, 246, 0.5);
+      box-shadow: 0 12px 40px rgba(99, 102, 241, 0.6);
     }
 
     .btn-secondary {
-      background: var(--bg-tertiary);
+      background: rgba(255, 255, 255, 0.05);
       color: var(--text-primary);
       border: 1px solid var(--border);
+      backdrop-filter: blur(10px);
     }
 
     .btn-secondary:hover {
-      background: #2d3a4f;
-      transform: translateY(-2px);
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
     }
 
     /* Hero Mockup */
     .hero-mockup {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 12px;
-      box-shadow: 0 40px 100px -20px rgba(0,0,0,0.7);
-      max-width: 900px;
-      margin: 0 auto;
+      margin-top: 80px;
       position: relative;
+      animation: fadeInUp 1s ease 0.3s both;
     }
 
-    .hero-mockup-inner {
-       background: var(--bg-primary);
-       border-radius: 12px;
-       overflow: hidden;
-       aspect-ratio: 16/9;
-       display: flex;
-       align-items: center;
-       justify-content: center;
+    .mockup-container {
+      position: relative;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 20px 80px rgba(0, 0, 0, 0.6);
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
     }
 
-    /* Feature Grid */
+    .mockup-container img {
+      width: 100%;
+      height: auto;
+      display: block;
+      transition: transform 0.3s ease;
+    }
+
+    .mockup-container:hover img {
+      transform: scale(1.02);
+    }
+
+    /* Features Section */
     .features {
-      padding: 100px 0;
+      padding: 120px 32px;
+      position: relative;
     }
 
     .section-header {
       text-align: center;
-      max-width: 600px;
-      margin: 0 auto 64px;
+      margin-bottom: 80px;
     }
 
     .section-header h2 {
-      font-size: 40px;
+      font-size: clamp(32px, 5vw, 48px);
       font-weight: 800;
-      letter-spacing: -0.02em;
       margin-bottom: 16px;
+      letter-spacing: -0.02em;
+    }
+
+    .section-header p {
+      font-size: 18px;
+      color: var(--text-secondary);
+      max-width: 600px;
+      margin: 0 auto;
     }
 
     .features-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 24px;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 32px;
+      max-width: 1200px;
+      margin: 0 auto;
     }
 
     .feature-card {
-      background: var(--bg-secondary);
+      background: rgba(255, 255, 255, 0.03);
       border: 1px solid var(--border);
       border-radius: 24px;
       padding: 40px;
       transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, transparent 50%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
     }
 
     .feature-card:hover {
-      border-color: rgba(59, 130, 246, 0.4);
-      background: var(--bg-tertiary);
-      transform: translateY(-5px);
+      transform: translateY(-8px);
+      border-color: rgba(99, 102, 241, 0.3);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
     }
 
-    .feature-card img {
+    .feature-card:hover::before {
+      opacity: 1;
+    }
+
+    .feature-icon {
       width: 100%;
-      height: 160px;
-      object-fit: cover;
-      border-radius: 12px;
+      height: 200px;
       margin-bottom: 24px;
-    }
-
-    .feature-card h3 {
-      font-size: 20px;
-      margin-bottom: 12px;
-    }
-
-    .feature-card p {
-      color: var(--text-secondary);
-      font-size: 15px;
-      line-height: 1.6;
-    }
-
-    /* Tutorial Section */
-    .tutorial {
-      padding: 100px 0;
-      background: var(--bg-secondary);
-    }
-
-    .tutorial-steps {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 24px;
-    }
-
-    .step-card {
-      text-align: center;
-    }
-
-    .step-img {
-      width: 100%;
-      aspect-ratio: 1;
-      background: var(--bg-tertiary);
-      border-radius: 20px;
-      margin-bottom: 20px;
-      border: 1px solid var(--border);
+      border-radius: 16px;
       overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      background: rgba(255, 255, 255, 0.02);
     }
 
-    .step-img img {
+    .feature-icon img {
       width: 100%;
       height: 100%;
       object-fit: cover;
     }
 
-    .step-num {
-       width: 28px;
-       height: 28px;
-       background: var(--accent-primary);
-       border-radius: 50%;
-       display: flex;
-       align-items: center;
-       justify-content: center;
-       font-size: 14px;
-       font-weight: 800;
-       margin: 0 auto 12px;
+    .feature-card h3 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      position: relative;
     }
 
-    /* FAQ */
-    .faq {
-      padding: 100px 0;
+    .feature-card p {
+      color: var(--text-secondary);
+      line-height: 1.7;
+      position: relative;
     }
 
-    .faq-list {
-      max-width: 700px;
+    /* Stats Section */
+    .stats {
+      padding: 80px 32px;
+      text-align: center;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 48px;
+      max-width: 1000px;
       margin: 0 auto;
     }
 
-    .faq-item {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 24px;
+    .stat-item h3 {
+      font-size: 48px;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+
+    .stat-item p {
+      color: var(--text-secondary);
+      font-size: 16px;
+    }
+
+    /* CTA Section */
+    .cta-section {
+      padding: 120px 32px;
+      text-align: center;
+      position: relative;
+    }
+
+    .cta-box {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 60px 40px;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 32px;
+      backdrop-filter: blur(20px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-box::before {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light), #8b5cf6);
+      border-radius: 32px;
+      z-index: -1;
+      opacity: 0.1;
+      animation: rotateBorder 3s linear infinite;
+    }
+
+    @keyframes rotateBorder {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .cta-box h2 {
+      font-size: clamp(28px, 4vw, 40px);
+      font-weight: 800;
       margin-bottom: 16px;
     }
 
-    .faq-item h3 {
+    .cta-box p {
       font-size: 18px;
-      margin-bottom: 8px;
-      color: var(--accent-primary);
+      color: var(--text-secondary);
+      margin-bottom: 32px;
     }
 
     /* Footer */
     footer {
-      padding: 60px 0;
+      padding: 60px 32px 32px;
       border-top: 1px solid var(--border);
       text-align: center;
     }
 
-    footer p { color: var(--text-muted); font-size: 14px; }
-    footer a { color: var(--accent-primary); text-decoration: none; margin: 0 10px; }
+    .footer-content {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
 
-    @media (max-width: 900px) {
-      .features-grid { grid-template-columns: 1fr; }
-      .tutorial-steps { grid-template-columns: 1fr 1fr; }
-      .hero h1 { font-size: 48px; }
+    .footer-links {
+      display: flex;
+      gap: 32px;
+      justify-content: center;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+    }
+
+    .footer-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 15px;
+      transition: color 0.3s ease;
+    }
+
+    .footer-links a:hover {
+      color: var(--text-primary);
+    }
+
+    .copyright {
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    /* Scroll Reveal Animation */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: all 0.8s ease;
+    }
+
+    .reveal.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .nav-links {
+        gap: 20px;
+      }
+
+      .hero {
+        padding: 60px 24px;
+      }
+
+      .features {
+        padding: 80px 24px;
+      }
+
+      .cta-section {
+        padding: 80px 24px;
+      }
+
+      .cta-box {
+        padding: 40px 24px;
+      }
     }
   </style>
 </head>
 <body>
-  <nav>
-    <div class="container">
-      <div class="logo">
-        <div class="logo-icon">
-          <svg width="20" height="20" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="8" y="8" width="16" height="16" rx="2" stroke="white" stroke-width="2.5" stroke-dasharray="4 2"/>
-            <path d="M20 6L15 15H18L17 22L22 13H19L20 6Z" fill="#F59E0B"/>
-          </svg>
-        </div>
-        <span>QuickDrop</span>
-      </div>
-      <div class="nav-links">
-        <a href="#features">Features</a>
-        <a href="#tutorial">How it works</a>
-        <a href="https://github.com/quickdrop/quickdrop-app" class="nav-github">GitHub</a>
-      </div>
-    </div>
-  </nav>
+  <!-- Animated Background -->
+  <div class="bg-gradient"></div>
+  <div class="bg-grid"></div>
 
-  <!-- Hero Section -->
-  <section class="hero">
-    <div class="container">
+  <div class="content-wrapper">
+    <!-- Navigation -->
+    <nav id="navbar">
+      <div class="nav-container">
+        <a href="#" class="logo">
+          <div class="logo-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+              <path d="M13 2L3 14h8l-1 8 10-12h-8l1-8z"/>
+            </svg>
+          </div>
+          QuickDrop
+        </a>
+        <div class="nav-links">
+          <a href="#features">Features</a>
+          <a href="https://github.com/binodacharya/quickdrop" target="_blank">GitHub</a>
+          <a href="https://quickdrop-app.pages.dev" class="btn btn-primary" style="padding: 10px 24px; font-size: 14px;">Launch App</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
       <div class="hero-content">
-        <div class="badge">Fully Web-Based • No Config Required</div>
-        <h1>Screenshot to Link<br><span class="gradient-text">in 1 Second</span></h1>
-        <p class="subtitle">The fastest way to share screenshots. Capture your screen, paste from clipboard, or drag images. Everything deletes in 24h.</p>
-        
-        <div class="cta-group" id="web-app-main">
-          <button onclick="startCapture()" class="btn btn-primary" style="padding: 18px 48px; font-size: 18px;">
-            <i class="ph-bold ph-monitor"></i>
-            Capture Screen
-          </button>
-          <div id="drop-zone" class="btn btn-secondary" style="padding: 18px 48px; font-size: 18px; border: 2px dashed var(--border-color);">
-            <i class="ph-bold ph-plus"></i>
-            Paste or Drop Image
-          </div>
+        <div class="badge">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/>
+          </svg>
+          100% Free • Open Source • Privacy-First
         </div>
 
-        <div id="upload-status" style="margin-top: 24px; display: none;">
-          <div class="badge" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid #3b82f6;">
-            <i class="ph-bold ph-spinner-gap ph-spin"></i> Uploading...
-          </div>
+        <h1>
+          Screenshot to Link<br>
+          <span class="gradient-text">in 1 Second</span>
+        </h1>
+
+        <p>
+          The fastest way to share screenshots. Capture, upload, and share with a single click.
+          Auto-expires in 24 hours. No login required.
+        </p>
+
+        <div class="cta-group">
+          <a href="https://quickdrop-app.pages.dev" class="btn btn-primary">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <circle cx="12" cy="12" r="10"/>
+              <polygon points="10 8 16 12 10 16 10 8"/>
+            </svg>
+            Try it Now
+          </a>
+          <a href="#features" class="btn btn-secondary">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M13 2L3 14h8l-1 8 10-12h-8l1-8z"/>
+            </svg>
+            See How it Works
+          </a>
         </div>
 
+        <div class="hero-mockup">
+          <div class="mockup-container">
+            <img src="assets/hero_image.png" alt="QuickDrop App Screenshot" loading="eager">
+          </div>
+        </div>
       </div>
-      
-      <div id="history-section" style="margin-top: 80px; display: none;">
-        <h3 style="margin-bottom: 24px; font-size: 24px; text-align: left;">Recent Uploads</h3>
-        <div id="history-list" class="features-grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
-          <!-- History items go here -->
-        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+      <div class="section-header reveal">
+        <h2>Why Choose QuickDrop?</h2>
+        <p>Everything you need for effortless screenshot sharing, nothing you don't.</p>
       </div>
-    </div>
-  </section>
 
-  <script>
-    const WORKER_URL = 'https://quickdrop-worker.binodalgopro123.workers.dev';
-
-    // 1. Browser Screen Capture
-    async function startCapture() {
-      try {
-        const stream = await navigator.mediaDevices.getDisplayMedia({
-          video: { mediaSource: 'screen' }
-        });
-
-        const video = document.createElement('video');
-        video.srcObject = stream;
-        await video.play();
-
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0);
-
-        stream.getTracks().forEach(track => track.stop());
-
-        canvas.toBlob(blob => uploadFile(new File([blob], "screenshot.png", { type: "image/png" })));
-      } catch (err) {
-        console.error("Capture failed:", err);
-      }
-    }
-
-    // 2. Clipboard Paste (Ctrl+V)
-    window.addEventListener('paste', (e) => {
-      const items = e.clipboardData.items;
-      for (let i = 0; i < items.length; i++) {
-        if (items[i].type.indexOf('image') !== -1) {
-          const blob = items[i].getAsFile();
-          uploadFile(blob);
-        }
-      }
-    });
-
-    // 3. Drag and Drop
-    const dropZone = document.getElementById('drop-zone');
-    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = 'var(--accent-primary)'; });
-    dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = 'var(--border-color)'; });
-    dropZone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      dropZone.style.borderColor = 'var(--border-color)';
-      const files = e.dataTransfer.files;
-      if (files.length > 0 && files[0].type.startsWith('image/')) {
-        uploadFile(files[0]);
-      }
-    });
-
-    // 4. Upload to R2
-    async function uploadFile(file) {
-      const status = document.getElementById('upload-status');
-      status.style.display = 'block';
-
-      try {
-        const formData = new FormData();
-        formData.append('image', file);
-
-        const response = await fetch(`${WORKER_URL}/api/upload`, {
-          method: 'POST',
-          body: formData
-        });
-
-        const data = await response.json();
-        if (data.success) {
-          navigator.clipboard.writeText(data.link);
-          saveToHistory(data);
-          alert('Link copied to clipboard!');
-        }
-      } catch (err) {
-        alert('Upload failed. Check console for details.');
-        console.error(err);
-      } finally {
-        status.style.display = 'none';
-      }
-    }
-
-    // 5. Client-Side History (localStorage)
-    function saveToHistory(upload) {
-      const history = JSON.parse(localStorage.getItem('qd-history') || '[]');
-      const item = {
-        ...upload,
-        timestamp: Date.now(),
-        filename: 'New Upload'
-      };
-      history.unshift(item);
-      if (history.length > 10) history.pop();
-      localStorage.setItem('qd-history', JSON.stringify(history));
-      renderHistory();
-    }
-
-    function renderHistory() {
-      const history = JSON.parse(localStorage.getItem('qd-history') || '[]');
-      const list = document.getElementById('history-list');
-      const section = document.getElementById('history-section');
-      
-      if (history.length === 0) {
-        section.style.display = 'none';
-        return;
-      }
-
-      section.style.display = 'block';
-      list.innerHTML = history.map(item => `
-        <div class="feature-card" style="padding: 24px;">
-          <div style="font-size: 14px; font-weight: 700; color: var(--accent-primary); margin-bottom: 8px;">COPIED</div>
-          <div style="font-size: 13px; font-family: monospace; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 12px;">
-            ${item.link}
-          </div>
-          <div style="display: flex; gap: 8px;">
-            <button onclick="navigator.clipboard.writeText('${item.link}'); alert('Copied!');" class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px; flex: 1;">Copy</button>
-            <a href="${item.link}" target="_blank" class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px; flex: 1;">Open</a>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    renderHistory();
-  </script>
-
-  <section id="features" class="features">
-    <div class="container">
-      <div class="section-header">
-        <h2>Built for Speed</h2>
-        <p>Everything you need to share visuals faster than ever.</p>
-      </div>
       <div class="features-grid">
-        <div class="feature-card">
-          <img src="assets/generated/feature-speed.png" alt="Speed Illustration">
-          <h3>Instant Upload</h3>
-          <p>QuickDrop detects your screenshot and uploads it to Cloudflare R2 instantly. No manual dragging required.</p>
+        <div class="feature-card reveal">
+          <div class="feature-icon">
+            <img src="assets/feature-speed.png" alt="Lightning Fast">
+          </div>
+          <h3>⚡ Lightning Fast</h3>
+          <p>Capture, upload, and share in under a second. No waiting, no complexity. Just instant sharing.</p>
         </div>
-        <div class="feature-card">
-          <img src="assets/generated/feature-privacy.png" alt="Privacy Illustration">
-          <h3>Privacy First</h3>
-          <p>Your screenshots automatically expire after 24 hours. We don't track you or store data permanently.</p>
-        </div>
-        <div class="feature-card">
-          <div style="height: 160px; background: var(--bg-tertiary); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 24px; font-size: 40px;">📋</div>
-          <h3>Clipboard Magic</h3>
-          <p>The shareable link is automatically copied to your clipboard. Just paste and send.</p>
-        </div>
-      </div>
-    </div>
-  </section>
 
-  <section id="tutorial" class="tutorial">
-    <div class="container">
-      <div class="section-header">
-        <h2>Simple by Design</h2>
-        <p>Get up and running in less than 30 seconds.</p>
-      </div>
-      <div class="tutorial-steps">
-        <div class="step-card">
-           <div class="step-img"><img src="assets/tutorial/01_installation.png" alt="Step 1"></div>
-           <div class="step-num">1</div>
-           <h4>Install</h4>
+        <div class="feature-card reveal">
+          <div class="feature-icon">
+            <img src="assets/feature-privacy.png" alt="Privacy First">
+          </div>
+          <h3>🔒 Privacy First</h3>
+          <p>All uploads auto-delete in 24 hours. No tracking, no data collection, no account required.</p>
         </div>
-        <div class="step-card">
-           <div class="step-img"><img src="assets/tutorial/02_first_launch.png" alt="Step 2"></div>
-           <div class="step-num">2</div>
-           <h4>Launch</h4>
-        </div>
-        <div class="step-card">
-           <div class="step-img"><img src="assets/tutorial/03_screenshot.png" alt="Step 3"></div>
-           <div class="step-num">3</div>
-           <h4>Screenshot</h4>
-        </div>
-        <div class="step-card">
-           <div class="step-img"><img src="assets/tutorial/04_link_copied.png" alt="Step 4"></div>
-           <div class="step-num">4</div>
-           <h4>Paste</h4>
-        </div>
-      </div>
-    </div>
-  </section>
 
-  <section id="download" class="faq" style="background: var(--bg-primary); border-top: 1px solid var(--border);">
-    <div class="container" style="text-align: center;">
-      <h2 style="font-size: 40px; margin-bottom: 40px;">Ready to save time?</h2>
-      <div class="cta-group">
-        <button class="btn btn-primary download-btn" data-platform="mac">macOS</button>
-        <button class="btn btn-secondary download-btn" data-platform="windows">Windows</button>
-        <button class="btn btn-secondary download-btn" data-platform="linux">Linux</button>
+        <div class="feature-card reveal">
+          <div class="feature-icon">
+            <img src="assets/app_icon.png" alt="Web-Based">
+          </div>
+          <h3>🌐 100% Web-Based</h3>
+          <p>Works directly in your browser. No downloads, no installations, no updates. Just open and use.</p>
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <footer>
-    <div class="container">
-      <p>&copy; 2026 QuickDrop Open Source Project. All rights reserved.</p>
-      <p style="margin-top: 12px;">
-        <a href="https://github.com/quickdrop/quickdrop-app">GitHub</a>
-        <a href="#">Privacy Policy</a>
-        <a href="#">Terms of Service</a>
-      </p>
-    </div>
-  </footer>
+    <!-- Stats Section -->
+    <section class="stats reveal">
+      <div class="stats-grid">
+        <div class="stat-item">
+          <h3>&lt;1s</h3>
+          <p>Upload Speed</p>
+        </div>
+        <div class="stat-item">
+          <h3>24h</h3>
+          <p>Auto-Delete</p>
+        </div>
+        <div class="stat-item">
+          <h3>100%</h3>
+          <p>Free Forever</p>
+        </div>
+        <div class="stat-item">
+          <h3>0</h3>
+          <p>Tracking</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+      <div class="cta-box reveal">
+        <h2>Ready to Share Faster?</h2>
+        <p>Join thousands using QuickDrop for instant screenshot sharing</p>
+        <a href="https://quickdrop-app.pages.dev" class="btn btn-primary">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <circle cx="12" cy="12" r="10"/>
+            <polygon points="10 8 16 12 10 16 10 8"/>
+          </svg>
+          Start Sharing Now
+        </a>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+      <div class="footer-content">
+        <div class="footer-links">
+          <a href="https://github.com/binodacharya/quickdrop" target="_blank">GitHub</a>
+          <a href="https://github.com/binodacharya/quickdrop/issues" target="_blank">Report Issue</a>
+          <a href="https://quickdrop-app.pages.dev" target="_blank">Web App</a>
+        </div>
+        <div class="copyright">
+          © 2026 QuickDrop. Open source and free forever.
+        </div>
+      </div>
+    </footer>
+  </div>
 
   <script>
-    const platform = navigator.platform.toLowerCase();
-    const downloadText = document.getElementById('download-text');
-    let detectedPlatform = 'mac';
-
-    if (platform.includes('mac')) {
-      detectedPlatform = 'mac';
-      downloadText.textContent = 'Download for Mac';
-    } else if (platform.includes('win')) {
-      detectedPlatform = 'windows';
-      downloadText.textContent = 'Download for Windows';
-    } else if (platform.includes('linux')) {
-      detectedPlatform = 'linux';
-      downloadText.textContent = 'Download for Linux';
-    }
-
-    function handleDownload(p) {
-      const urls = {
-        mac: 'https://github.com/quickdrop/quickdrop-app/releases/latest/download/QuickDrop-mac.dmg',
-        windows: 'https://github.com/quickdrop/quickdrop-app/releases/latest/download/QuickDrop-setup.exe',
-        linux: 'https://github.com/quickdrop/quickdrop-app/releases/latest/download/QuickDrop-linux.AppImage'
-      };
-      window.location.href = urls[p];
-    }
-
-    document.getElementById('download-primary').onclick = (e) => {
-      e.preventDefault();
-      handleDownload(detectedPlatform);
-    };
-
-    document.querySelectorAll('.download-btn').forEach(btn => {
-      btn.onclick = () => handleDownload(btn.dataset.platform);
+    // Navbar scroll effect
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 50) {
+        navbar.classList.add('scrolled');
+      } else {
+        navbar.classList.remove('scrolled');
+      }
     });
+
+    // Scroll reveal animation
+    const reveals = document.querySelectorAll('.reveal');
+
+    function revealOnScroll() {
+      reveals.forEach(element => {
+        const elementTop = element.getBoundingClientRect().top;
+        const elementVisible = 150;
+
+        if (elementTop < window.innerHeight - elementVisible) {
+          element.classList.add('active');
+        }
+      });
+    }
+
+    window.addEventListener('scroll', revealOnScroll);
+    revealOnScroll(); // Initial check
   </script>
 </body>
 </html>
