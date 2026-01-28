@@ -416,28 +416,163 @@
     </div>
   </nav>
 
+  <!-- Hero Section -->
   <section class="hero">
     <div class="container">
       <div class="hero-content">
-        <div class="badge">Open Source & Free</div>
-        <h1>Screenshot to Link<br>in 1 Second</h1>
-        <p class="subtitle">The fastest way to share screenshots with your team. No manual uploads, no desktop clutter, zero friction.</p>
-        <div class="cta-group">
-          <a href="#download" class="btn btn-primary" id="download-primary">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            <span id="download-text">Download for Mac</span>
-          </a>
-          <a href="#tutorial" class="btn btn-secondary">See how it works</a>
+        <div class="badge">Fully Web-Based • No Config Required</div>
+        <h1>Screenshot to Link<br><span class="gradient-text">in 1 Second</span></h1>
+        <p class="subtitle">The fastest way to share screenshots. Capture your screen, paste from clipboard, or drag images. Everything deletes in 24h.</p>
+        
+        <div class="cta-group" id="web-app-main">
+          <button onclick="startCapture()" class="btn btn-primary" style="padding: 18px 48px; font-size: 18px;">
+            <i class="ph-bold ph-monitor"></i>
+            Capture Screen
+          </button>
+          <div id="drop-zone" class="btn btn-secondary" style="padding: 18px 48px; font-size: 18px; border: 2px dashed var(--border-color);">
+            <i class="ph-bold ph-plus"></i>
+            Paste or Drop Image
+          </div>
         </div>
+
+        <div id="upload-status" style="margin-top: 24px; display: none;">
+          <div class="badge" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid #3b82f6;">
+            <i class="ph-bold ph-spinner-gap ph-spin"></i> Uploading...
+          </div>
+        </div>
+
       </div>
       
-      <div class="hero-mockup">
-        <div class="hero-mockup-inner">
-           <img src="assets/generated/hero_image.png" alt="QuickDrop Mockup" style="width: 100%; height: 100%; object-fit: cover;">
+      <div id="history-section" style="margin-top: 80px; display: none;">
+        <h3 style="margin-bottom: 24px; font-size: 24px; text-align: left;">Recent Uploads</h3>
+        <div id="history-list" class="features-grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
+          <!-- History items go here -->
         </div>
       </div>
     </div>
   </section>
+
+  <script>
+    const WORKER_URL = 'https://quickdrop-worker.binodalgopro123.workers.dev';
+
+    // 1. Browser Screen Capture
+    async function startCapture() {
+      try {
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+          video: { mediaSource: 'screen' }
+        });
+
+        const video = document.createElement('video');
+        video.srcObject = stream;
+        await video.play();
+
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0);
+
+        stream.getTracks().forEach(track => track.stop());
+
+        canvas.toBlob(blob => uploadFile(new File([blob], "screenshot.png", { type: "image/png" })));
+      } catch (err) {
+        console.error("Capture failed:", err);
+      }
+    }
+
+    // 2. Clipboard Paste (Ctrl+V)
+    window.addEventListener('paste', (e) => {
+      const items = e.clipboardData.items;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          const blob = items[i].getAsFile();
+          uploadFile(blob);
+        }
+      }
+    });
+
+    // 3. Drag and Drop
+    const dropZone = document.getElementById('drop-zone');
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = 'var(--accent-primary)'; });
+    dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = 'var(--border-color)'; });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = 'var(--border-color)';
+      const files = e.dataTransfer.files;
+      if (files.length > 0 && files[0].type.startsWith('image/')) {
+        uploadFile(files[0]);
+      }
+    });
+
+    // 4. Upload to R2
+    async function uploadFile(file) {
+      const status = document.getElementById('upload-status');
+      status.style.display = 'block';
+
+      try {
+        const formData = new FormData();
+        formData.append('image', file);
+
+        const response = await fetch(`${WORKER_URL}/api/upload`, {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          navigator.clipboard.writeText(data.link);
+          saveToHistory(data);
+          alert('Link copied to clipboard!');
+        }
+      } catch (err) {
+        alert('Upload failed. Check console for details.');
+        console.error(err);
+      } finally {
+        status.style.display = 'none';
+      }
+    }
+
+    // 5. Client-Side History (localStorage)
+    function saveToHistory(upload) {
+      const history = JSON.parse(localStorage.getItem('qd-history') || '[]');
+      const item = {
+        ...upload,
+        timestamp: Date.now(),
+        filename: 'New Upload'
+      };
+      history.unshift(item);
+      if (history.length > 10) history.pop();
+      localStorage.setItem('qd-history', JSON.stringify(history));
+      renderHistory();
+    }
+
+    function renderHistory() {
+      const history = JSON.parse(localStorage.getItem('qd-history') || '[]');
+      const list = document.getElementById('history-list');
+      const section = document.getElementById('history-section');
+      
+      if (history.length === 0) {
+        section.style.display = 'none';
+        return;
+      }
+
+      section.style.display = 'block';
+      list.innerHTML = history.map(item => `
+        <div class="feature-card" style="padding: 24px;">
+          <div style="font-size: 14px; font-weight: 700; color: var(--accent-primary); margin-bottom: 8px;">COPIED</div>
+          <div style="font-size: 13px; font-family: monospace; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 12px;">
+            ${item.link}
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button onclick="navigator.clipboard.writeText('${item.link}'); alert('Copied!');" class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px; flex: 1;">Copy</button>
+            <a href="${item.link}" target="_blank" class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px; flex: 1;">Open</a>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    renderHistory();
+  </script>
 
   <section id="features" class="features">
     <div class="container">
