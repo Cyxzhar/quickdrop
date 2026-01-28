@@ -1,9 +1,9 @@
 import { createHash, createHmac, webcrypto } from 'crypto'
 import { nativeImage } from 'electron'
-import { createWorker } from 'tesseract.js'
 import { UploadRecord, ProgressCallback } from '../types'
 import { getConfig, isCloudflareConfigured } from '../config'
 import { addUploadRecord, updateUploadRecordText } from './history-store'
+import { extractText } from './ocr-service'
 
 // Generate a short unique ID (6 characters, alphanumeric)
 function generateShortId(): string {
@@ -64,10 +64,7 @@ async function encryptImage(buffer: Buffer, password: string): Promise<Buffer> {
 // Process image for OCR in the background
 async function processOCR(id: string, buffer: Buffer) {
   try {
-    const worker = await createWorker('eng')
-    const ret = await worker.recognize(buffer)
-    const text = ret.data.text
-    await worker.terminate()
+    const text = await extractText(buffer)
 
     if (text && text.trim().length > 0) {
       console.log(`[OCR] Extracted ${text.length} chars for ${id}`)

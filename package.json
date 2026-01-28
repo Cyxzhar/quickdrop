@@ -20,7 +20,8 @@
     "build:win": "npm run build && electron-builder --win",
     "build:linux": "npm run build && electron-builder --linux",
     "build:all": "npm run build && electron-builder --mac --win --linux",
-    "activity": "bash scripts/auto-commit.sh"
+    "activity": "bash scripts/auto-commit.sh",
+    "web:dev": "wrangler pages dev web/public --port 8788"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
