@@ -1,10 +1,14 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import './App.css'
 import { compressImage } from './utils/imageCompression'
-import { extractText } from './services/ocr'
-import { ImageEditor } from './components/ImageEditor'
-import { QRCodeModal } from './components/QRCodeModal'
 import { ExpiryPicker } from './components/ExpiryPicker'
+
+// Lazy load heavy components
+const ImageEditor = lazy(() => import('./components/ImageEditor').then(m => ({ default: m.ImageEditor })))
+const QRCodeModal = lazy(() => import('./components/QRCodeModal').then(m => ({ default: m.QRCodeModal })))
+
+// Lazy load OCR service
+const loadOCR = () => import('./services/ocr').then(m => m.extractText)
 
 interface UploadRecord {
   id: string
@@ -97,8 +101,8 @@ function App() {
     try {
       // Request screen capture permission
       const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: { mediaSource: 'screen' as any }
-      })
+        video: true
+      } as DisplayMediaStreamOptions)
 
       // Create video element to capture frame
       const video = document.createElement('video')
@@ -225,7 +229,9 @@ function App() {
 
       // Extract OCR text in background (non-blocking)
       if (fileOrBlob) {
-        extractText(fileOrBlob).then(ocrText => {
+        loadOCR().then(extractText => {
+          return extractText(fileOrBlob)
+        }).then(ocrText => {
           if (ocrText && ocrText.length > 0) {
             // Update the record with OCR text
             setHistory(prev => prev.map(item =>
@@ -345,13 +351,6 @@ function App() {
     if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`
     if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`
     return date.toLocaleDateString()
-  }
-
-  const formatSize = (blob: Blob | File) => {
-    const bytes = blob.size
-    if (bytes < 1024) return `${bytes} B`
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
   }
 
   return (
@@ -574,20 +573,24 @@ function App() {
 
       {/* Image Editor Modal */}
       {editingImage && (
-        <ImageEditor
-          imageUrl={editingImage.url}
-          onSave={handleSaveAnnotated}
-          onCancel={() => setEditingImage(null)}
-        />
+        <Suspense fallback={<div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>Loading editor...</div>}>
+          <ImageEditor
+            imageUrl={editingImage.url}
+            onSave={handleSaveAnnotated}
+            onCancel={() => setEditingImage(null)}
+          />
+        </Suspense>
       )}
 
       {/* QR Code Modal */}
       {qrImage && (
-        <QRCodeModal
-          link={qrImage.link}
-          filename={qrImage.filename}
-          onClose={() => setQrImage(null)}
-        />
+        <Suspense fallback={<div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>Loading QR code...</div>}>
+          <QRCodeModal
+            link={qrImage.link}
+            filename={qrImage.filename}
+            onClose={() => setQrImage(null)}
+          />
+        </Suspense>
       )}
     </div>
   )

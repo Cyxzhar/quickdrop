@@ -1,19 +1,20 @@
-const CACHE_NAME = 'quickdrop-v1'
+const CACHE_NAME = 'quickdrop-v2'
 const urlsToCache = [
   '/',
-  '/index.html',
-  '/assets/index.css',
-  '/assets/index.js'
+  '/index.html'
 ]
 
-// Install event - cache static assets
+// Install event - cache core shell
 self.addEventListener('install', event => {
   console.log('[Service Worker] Installing...')
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
         console.log('[Service Worker] Caching app shell')
-        return cache.addAll(urlsToCache)
+        // Don't fail if caching fails, rely on runtime caching
+        return cache.addAll(urlsToCache).catch(err => {
+          console.warn('[Service Worker] Cache addAll failed:', err)
+        })
       })
       .then(() => self.skipWaiting())
   )
@@ -45,6 +46,13 @@ self.addEventListener('fetch', event => {
 
   // Skip API requests (always go to network)
   if (event.request.url.includes('/api/')) {
+    return event.respondWith(fetch(event.request))
+  }
+
+  // Skip large Tesseract worker files from cache
+  if (event.request.url.includes('tesseract') ||
+      event.request.url.includes('worker') ||
+      event.request.url.includes('.traineddata')) {
     return event.respondWith(fetch(event.request))
   }
 
