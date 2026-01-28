@@ -44,3 +44,16 @@ coverage/
 # Temporary files
 tmp/
 temp/
+
+# Internal planning docs
+TRANSFORMATION_PLAN.md
+IMPLEMENTATION.md
+**/OPERATION_LOG.json
+preview_server.js
+
+# AI folders
+.gemini/
+
+# Cloudflare Wrangler
+.wrangler/
+wrangler.toml.backup
