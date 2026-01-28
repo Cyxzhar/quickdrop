@@ -109,7 +109,7 @@ const COMMON_CSS = `
 `;
 
 // HTML template for the image viewer page
-function getViewerHTML(imageUrl: string, imageId: string): string {
+function getViewerHTML(imageUrl: string, imageId: string, ocrText?: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -216,6 +216,53 @@ function getViewerHTML(imageUrl: string, imageId: string): string {
          Expires in 24 hours
        </div>
     </div>
+
+    ${ocrText && ocrText.trim().length > 0 ? `
+    <div class="glass" style="margin-top: 32px; max-width: 700px; width: 100%; padding: 24px; border-radius: 16px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+        <h3 style="font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+          <i class="ph-bold ph-text-aa"></i> Extracted Text
+        </h3>
+        <button onclick="copyOCRText()" class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;">
+          <i class="ph-bold ph-copy"></i> Copy Text
+        </button>
+      </div>
+      <pre id="ocr-text" style="
+        background: rgba(255, 255, 255, 0.03);
+        padding: 16px;
+        border-radius: 8px;
+        font-family: 'JetBrains Mono', 'Fira Code', monospace;
+        font-size: 13px;
+        line-height: 1.6;
+        color: var(--text-main);
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        overflow-x: auto;
+        border: 1px solid var(--border-color);
+      ">${ocrText.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+    </div>
+
+    <script>
+      function copyOCRText() {
+        const text = document.getElementById('ocr-text').textContent;
+        navigator.clipboard.writeText(text).then(() => {
+          const btn = event.target.closest('button');
+          const originalHTML = btn.innerHTML;
+          btn.innerHTML = '<i class="ph-bold ph-check"></i> Copied!';
+          btn.style.background = 'rgba(16, 185, 129, 0.2)';
+          btn.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+          btn.style.color = '#10b981';
+
+          setTimeout(() => {
+            btn.innerHTML = originalHTML;
+            btn.style.background = '';
+            btn.style.borderColor = '';
+            btn.style.color = '';
+          }, 2000);
+        });
+      }
+    </script>
+    ` : ''}
 
     <div class="brand-footer">
       <span>Shared via</span>
@@ -439,8 +486,8 @@ function getLandingHTML(): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QuickDrop - Screenshot to Link in 1 Second</title>
-  <meta name="description" content="Transform screenshots into shareable links instantly.">
+  <title>QuickDrop - Stop Leaking Private Screenshots | Privacy-First Screenshot Sharing</title>
+  <meta name="description" content="Gyazo keeps your screenshots forever. QuickDrop deletes them after 24h. Self-hosted, encrypted, open-source screenshot sharing for developers who value privacy.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -455,8 +502,8 @@ function getLandingHTML(): string {
       right: 0;
       z-index: 50;
       border-bottom: 1px solid var(--border-color);
-      background: rgba(5, 5, 5, 0.8);
-      backdrop-filter: blur(12px);
+      background: rgba(5, 5, 5, 0.95);
+      backdrop-filter: blur(20px);
     }
     nav .container {
       height: 70px;
@@ -471,7 +518,7 @@ function getLandingHTML(): string {
       align-items: center;
       gap: 8px;
     }
-    .nav-links { display: flex; gap: 32px; }
+    .nav-links { display: flex; gap: 32px; align-items: center; }
     .nav-links a {
       color: var(--text-muted);
       text-decoration: none;
@@ -482,83 +529,322 @@ function getLandingHTML(): string {
     .nav-links a:hover { color: var(--text-main); }
 
     .hero {
-      padding: 160px 0 100px;
+      padding: 180px 0 120px;
       text-align: center;
       position: relative;
     }
-    
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 100px;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 32px;
+    }
+
     h1 {
-      font-size: 72px;
+      font-size: 80px;
       font-weight: 800;
-      line-height: 1.1;
-      margin-bottom: 24px;
-      letter-spacing: -2px;
+      line-height: 1.05;
+      margin-bottom: 32px;
+      letter-spacing: -3px;
     }
-    
+
+    .gradient-text {
+      background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
     .subtitle {
-      font-size: 20px;
+      font-size: 22px;
       color: var(--text-muted);
-      max-width: 600px;
-      margin: 0 auto 48px;
+      max-width: 680px;
+      margin: 0 auto 56px;
+      line-height: 1.6;
     }
 
-    .features { padding: 100px 0; }
-    .features-header { text-align: center; margin-bottom: 64px; }
-    .features-header h2 { font-size: 42px; font-weight: 700; margin-bottom: 16px; letter-spacing: -1px; }
-    .features-header p { color: var(--text-muted); font-size: 18px; }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 24px;
-    }
-
-    .card {
-      padding: 32px;
-      border-radius: 20px;
-      transition: transform 0.3s ease;
-    }
-    .card:hover { transform: translateY(-4px); border-color: rgba(99, 102, 241, 0.3); }
-    
-    .icon-box {
-      width: 48px;
-      height: 48px;
-      border-radius: 12px;
-      background: rgba(99, 102, 241, 0.1);
+    .cta-group {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--primary);
-      font-size: 24px;
-      margin-bottom: 20px;
+      gap: 16px;
+      flex-wrap: wrap;
     }
-
-    h3 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
-    .card p { color: var(--text-muted); font-size: 15px; }
 
     .download-badge {
       display: flex;
       align-items: center;
       gap: 12px;
-      margin-top: 16px;
+      margin-top: 20px;
       justify-content: center;
       font-size: 13px;
       color: var(--text-muted);
     }
 
-    footer {
-      border-top: 1px solid var(--border-color);
-      padding: 60px 0;
+    .problem-section {
+      padding: 120px 0;
+      background: rgba(239, 68, 68, 0.03);
+      border-top: 1px solid rgba(239, 68, 68, 0.1);
+      border-bottom: 1px solid rgba(239, 68, 68, 0.1);
+    }
+
+    .problem-header {
       text-align: center;
+      margin-bottom: 72px;
+    }
+
+    .problem-header h2 {
+      font-size: 48px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      letter-spacing: -1.5px;
+    }
+
+    .problem-header p {
+      font-size: 20px;
+      color: var(--text-muted);
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .problem-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 32px;
+    }
+
+    .problem-card {
+      padding: 36px;
+      background: rgba(20, 20, 22, 0.4);
+      border-radius: 20px;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .problem-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
+      background: rgba(239, 68, 68, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ef4444;
+      font-size: 28px;
+      margin-bottom: 24px;
+    }
+
+    .problem-card h3 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #fca5a5;
+    }
+
+    .problem-card p {
+      color: var(--text-muted);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .comparison-section {
+      padding: 120px 0;
+    }
+
+    .comparison-header {
+      text-align: center;
+      margin-bottom: 64px;
+    }
+
+    .comparison-header h2 {
+      font-size: 48px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      letter-spacing: -1.5px;
+    }
+
+    .comparison-table {
+      max-width: 900px;
+      margin: 0 auto;
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .comparison-table table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .comparison-table th {
+      background: rgba(99, 102, 241, 0.1);
+      padding: 20px 24px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .comparison-table td {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 15px;
+    }
+
+    .comparison-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .comparison-table td:first-child {
+      font-weight: 500;
+      color: var(--text-main);
+    }
+
+    .check { color: #10b981; }
+    .cross { color: #ef4444; }
+
+    .features-section { padding: 120px 0; }
+    .features-header { text-align: center; margin-bottom: 80px; }
+    .features-header h2 { font-size: 48px; font-weight: 700; margin-bottom: 20px; letter-spacing: -1.5px; }
+    .features-header p { color: var(--text-muted); font-size: 20px; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 32px;
+    }
+
+    .feature-card {
+      padding: 40px;
+      border-radius: 20px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .feature-card:hover {
+      transform: translateY(-6px);
+      border-color: rgba(99, 102, 241, 0.4);
+      box-shadow: 0 20px 60px rgba(99, 102, 241, 0.2);
+    }
+
+    .icon-box {
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
+      background: rgba(99, 102, 241, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+      font-size: 28px;
+      margin-bottom: 24px;
+    }
+
+    .feature-card h3 { font-size: 20px; font-weight: 600; margin-bottom: 12px; }
+    .feature-card p { color: var(--text-muted); font-size: 15px; line-height: 1.7; }
+
+    .cta-section {
+      padding: 120px 0;
+      text-align: center;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1));
+      border-top: 1px solid rgba(99, 102, 241, 0.2);
+      border-bottom: 1px solid rgba(99, 102, 241, 0.2);
+    }
+
+    .cta-section h2 {
+      font-size: 56px;
+      font-weight: 700;
+      margin-bottom: 24px;
+      letter-spacing: -2px;
+    }
+
+    .cta-section p {
+      font-size: 20px;
+      color: var(--text-muted);
+      margin-bottom: 48px;
+    }
+
+    footer {
+      padding: 80px 0 40px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 48px;
+      margin-bottom: 48px;
+    }
+
+    .footer-col h4 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .footer-col a {
+      display: block;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      margin-bottom: 12px;
+      transition: color 0.2s;
+    }
+
+    .footer-col a:hover {
+      color: var(--primary);
+    }
+
+    .footer-bottom {
+      text-align: center;
+      padding-top: 32px;
+      border-top: 1px solid var(--border-color);
       color: var(--text-muted);
       font-size: 14px;
     }
-    footer a { color: var(--text-main); text-decoration: none; }
-    
-    @media (max-width: 768px) {
-      h1 { font-size: 48px; }
-      .hero { padding: 120px 0 60px; }
+
+    .footer-bottom a {
+      color: var(--text-main);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .footer-bottom a:hover {
+      color: var(--primary);
+    }
+
+    @media (max-width: 968px) {
+      h1 { font-size: 56px; }
+      .hero { padding: 140px 0 80px; }
       .grid { grid-template-columns: 1fr; }
+      .comparison-table {
+        font-size: 13px;
+      }
+      .comparison-table th, .comparison-table td {
+        padding: 14px 16px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      h1 { font-size: 40px; letter-spacing: -1.5px; }
+      .subtitle { font-size: 18px; }
+      .problem-header h2, .features-header h2, .comparison-header h2, .cta-section h2 {
+        font-size: 32px;
+      }
+      .cta-group { flex-direction: column; width: 100%; }
+      .btn { width: 100%; justify-content: center; }
     }
   </style>
 </head>
@@ -570,98 +856,250 @@ function getLandingHTML(): string {
         QuickDrop
       </div>
       <div class="nav-links">
+        <a href="#why">Why QuickDrop</a>
         <a href="#features">Features</a>
-        <a href="https://github.com/quickdrop/quickdrop-app">GitHub</a>
+        <a href="https://github.com/binodacharya/quickdrop" target="_blank">
+          <i class="ph-bold ph-github-logo"></i> GitHub
+        </a>
       </div>
     </div>
   </nav>
 
   <section class="hero">
     <div class="container">
-      <h1>Screenshot to Link<br><span class="glow-text">in 1 Second</span></h1>
-      <p class="subtitle">Transform screenshots into shareable links instantly. No apps to open, no files to find, just pure speed.</p>
-      
-      <div style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
-        <button id="download-btn" class="btn btn-primary" style="padding: 16px 32px; font-size: 18px;">
-          <i class="ph-bold ph-download-simple"></i>
-          <span id="download-text">Download for Mac</span>
-        </button>
-        <div class="download-badge">
-          <span><i class="ph-fill ph-check-circle" style="color: #10b981"></i> Free Forever</span>
-          <span>•</span>
-          <span>v1.0.0</span>
-          <span>•</span>
-          <span>Open Source</span>
+      <div class="badge">
+        <i class="ph-fill ph-warning-circle"></i>
+        Gyazo keeps your screenshots forever
+      </div>
+
+      <h1>
+        Stop Leaking<br>
+        <span class="gradient-text">Private Screenshots</span>
+      </h1>
+
+      <p class="subtitle">
+        Screenshot tools like Gyazo and Imgur store your private images indefinitely with guessable links.
+        QuickDrop auto-deletes after 24 hours, uses self-hosted storage, and encrypts everything client-side.
+      </p>
+
+      <div class="cta-group">
+        <a href="https://a62def6f.quickdrop-app.pages.dev" target="_blank" class="btn btn-primary" style="padding: 16px 40px; font-size: 17px;">
+          <i class="ph-bold ph-rocket-launch"></i>
+          Launch Web App
+        </a>
+        <a href="https://github.com/binodacharya/quickdrop" target="_blank" class="btn btn-secondary" style="padding: 16px 40px; font-size: 17px;">
+          <i class="ph-bold ph-github-logo"></i>
+          View on GitHub
+        </a>
+      </div>
+
+      <div class="download-badge">
+        <span><i class="ph-fill ph-check-circle" style="color: #10b981"></i> No Installation Required</span>
+        <span>•</span>
+        <span>Works in Any Browser</span>
+        <span>•</span>
+        <span>Free & Open Source</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="why" class="problem-section">
+    <div class="container">
+      <div class="problem-header">
+        <h2>Why Developers Are Leaving Gyazo</h2>
+        <p>Sharing screenshots shouldn't mean sacrificing your privacy or paying $120/year for basic features.</p>
+      </div>
+
+      <div class="problem-grid">
+        <div class="problem-card">
+          <div class="problem-icon"><i class="ph-fill ph-lock-open"></i></div>
+          <h3>Guessable Links</h3>
+          <p>Short URLs like gyazo.com/abc123 can be discovered by anyone. Your "private" screenshots with API keys, internal dashboards, and sensitive data could be exposed.</p>
+        </div>
+
+        <div class="problem-card">
+          <div class="problem-icon"><i class="ph-fill ph-infinity"></i></div>
+          <h3>Forever Storage</h3>
+          <p>Your screenshots stay online indefinitely. No auto-delete, no expiry. Once uploaded, they're there forever unless you manually clean them up.</p>
+        </div>
+
+        <div class="problem-card">
+          <div class="problem-icon"><i class="ph-fill ph-image"></i></div>
+          <h3>Promotional Use</h3>
+          <p>Gyazo's ToS states they may use your screenshots for promotional purposes. Your proprietary content, their marketing material.</p>
+        </div>
+
+        <div class="problem-card">
+          <div class="problem-icon"><i class="ph-fill ph-currency-dollar"></i></div>
+          <h3>Expensive Plans</h3>
+          <p>CloudApp costs $120/year. Droplr $89/year. Teams pay thousands for basic screenshot sharing. QuickDrop is free with R2 costing ~$0.10/month.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <section id="features" class="features">
+  <section class="comparison-section">
+    <div class="container">
+      <div class="comparison-header">
+        <h2>How QuickDrop Compares</h2>
+      </div>
+
+      <div class="comparison-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th>Gyazo</th>
+              <th>CloudApp</th>
+              <th>QuickDrop</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Auto-Expiry</td>
+              <td><span class="cross"><i class="ph-fill ph-x-circle"></i> Manual delete</span></td>
+              <td><span class="check"><i class="ph-fill ph-check-circle"></i> Custom</span></td>
+              <td><span class="check"><i class="ph-fill ph-check-circle"></i> 24h default</span></td>
+            </tr>
+            <tr>
+              <td>Client-Side Encryption</td>
+              <td><span class="cross"><i class="ph-fill ph-x-circle"></i> No</span></td>
+              <td><span class="cross"><i class="ph-fill ph-x-circle"></i> No</span></td>
+              <td><span class="check"><i class="ph-fill ph-check-circle"></i> AES-256-GCM</span></td>
+            </tr>
+            <tr>
+              <td>OCR Text Search</td>
+              <td><span class="cross"><i class="ph-fill ph-x-circle"></i> No</span></td>
+              <td><span class="check"><i class="ph-fill ph-check-circle"></i> Yes</span></td>
+              <td><span class="check"><i class="ph-fill ph-check-circle"></i> Tesseract.js</span></td>
+            </tr>
+            <tr>
+              <td>Self-Hosted Option</td>
+              <td><span class="cross"><i class="ph-fill ph-x-circle"></i> No</span></td>
+              <td><span class="cross"><i class="ph-fill ph-x-circle"></i> No</span></td>
+              <td><span class="check"><i class="ph-fill ph-check-circle"></i> R2 / S3</span></td>
+            </tr>
+            <tr>
+              <td>Pricing</td>
+              <td>Free / $3/mo</td>
+              <td>$120/year</td>
+              <td><strong>Free Forever</strong></td>
+            </tr>
+            <tr>
+              <td>Open Source</td>
+              <td><span class="cross"><i class="ph-fill ph-x-circle"></i> No</span></td>
+              <td><span class="cross"><i class="ph-fill ph-x-circle"></i> No</span></td>
+              <td><span class="check"><i class="ph-fill ph-check-circle"></i> MIT License</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="features" class="features-section">
     <div class="container">
       <div class="features-header">
-        <h2>Designed for Speed</h2>
-        <p>Everything you need to share faster, and nothing you don't.</p>
+        <h2>Privacy-First Screenshot Sharing</h2>
+        <p>Everything you need, nothing you don't. Built for developers who value privacy.</p>
       </div>
-      
+
       <div class="grid">
-        <div class="glass card">
-          <div class="icon-box"><i class="ph-fill ph-lightning"></i></div>
-          <h3>Instant Upload</h3>
-          <p>Detects new screenshots automatically and uploads them instantly. The link is copied to your clipboard before you can blink.</p>
+        <div class="glass feature-card">
+          <div class="icon-box"><i class="ph-fill ph-clock-countdown"></i></div>
+          <h3>24h Auto-Expiry</h3>
+          <p>Screenshots are automatically deleted from R2 after 24 hours. Cloudflare Workers cron runs daily at midnight UTC. No forgotten screenshots lingering forever.</p>
         </div>
-        <div class="glass card">
-          <div class="icon-box"><i class="ph-fill ph-shield-check"></i></div>
-          <h3>Privacy First</h3>
-          <p>We don't want your data. All uploads automatically expire and delete themselves after 24 hours. No traces left behind.</p>
-        </div>
-        <div class="glass card">
+
+        <div class="glass feature-card">
           <div class="icon-box"><i class="ph-fill ph-lock-key"></i></div>
-          <h3>End-to-End Security</h3>
-          <p>Optional password protection with client-side encryption. We can't see your images even if we wanted to.</p>
+          <h3>Client-Side Encryption</h3>
+          <p>Enable password protection and your screenshots are encrypted with AES-256-GCM BEFORE upload. We never see your password or plaintext images. Zero-knowledge architecture.</p>
         </div>
-        <div class="glass card">
-          <div class="icon-box"><i class="ph-fill ph-globe"></i></div>
-          <h3>Universal Sharing</h3>
-          <p>Links work everywhere—Slack, Discord, Linear, or SMS. Recipients get a beautiful viewing experience on any device.</p>
+
+        <div class="glass feature-card">
+          <div class="icon-box"><i class="ph-fill ph-text-aa"></i></div>
+          <h3>OCR Text Extraction</h3>
+          <p>Tesseract.js extracts text from screenshots automatically. Search your entire history by any word, even if it's in an image. Perfect for finding old error messages.</p>
         </div>
-        <div class="glass card">
-          <div class="icon-box"><i class="ph-fill ph-copy"></i></div>
-          <h3>Clipboard Magic</h3>
-          <p>QuickDrop silently replaces the raw image in your clipboard with a shareable URL. Just Paste (Cmd+V) and you're done.</p>
+
+        <div class="glass feature-card">
+          <div class="icon-box"><i class="ph-fill ph-lightning"></i></div>
+          <h3>Instant Clipboard Replace</h3>
+          <p>Take screenshot → Auto-upload → Link copied. QuickDrop replaces the image in your clipboard with a shareable URL in under 1 second. Just paste (⌘V).</p>
         </div>
-        <div class="glass card">
+
+        <div class="glass feature-card">
+          <div class="icon-box"><i class="ph-fill ph-hard-drives"></i></div>
+          <h3>Self-Hosted on R2</h3>
+          <p>You control your data. QuickDrop stores screenshots on YOUR Cloudflare R2 bucket ($0.01/GB = ~$0.10/month for 1000 screenshots). GDPR-compliant by default.</p>
+        </div>
+
+        <div class="glass feature-card">
           <div class="icon-box"><i class="ph-fill ph-code"></i></div>
-          <h3>Open Source</h3>
-          <p>Built by developers, for developers. Check our code on GitHub, contribute features, or self-host your own instance.</p>
+          <h3>Open Source (MIT)</h3>
+          <p>Check our code on GitHub, contribute features, or fork for your own needs. No vendor lock-in. Built by developers, for developers.</p>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-section">
+    <div class="container">
+      <h2>Take Control of Your Screenshots</h2>
+      <p>Stop worrying about private screenshots leaking online. Start using QuickDrop today.</p>
+
+      <div class="cta-group">
+        <a href="https://a62def6f.quickdrop-app.pages.dev" target="_blank" class="btn btn-primary" style="padding: 18px 48px; font-size: 18px;">
+          <i class="ph-bold ph-rocket-launch"></i>
+          Launch Web App
+        </a>
+      </div>
+
+      <div class="download-badge">
+        <span>Free Forever • No Installation • No Tracking</span>
       </div>
     </div>
   </section>
 
   <footer>
     <div class="container">
-      <p>Built with <i class="ph-fill ph-heart" style="color: #ef4444"></i> by the QuickDrop community</p>
-      <p style="margin-top: 8px; opacity: 0.6; font-size: 13px;">Released under MIT License</p>
+      <div class="footer-grid">
+        <div class="footer-col">
+          <h4>Product</h4>
+          <a href="#features">Features</a>
+          <a href="https://github.com/binodacharya/quickdrop#readme" target="_blank">Documentation</a>
+          <a href="https://github.com/binodacharya/quickdrop/releases" target="_blank">Releases</a>
+        </div>
+
+        <div class="footer-col">
+          <h4>Resources</h4>
+          <a href="https://github.com/binodacharya/quickdrop" target="_blank">GitHub</a>
+          <a href="https://github.com/binodacharya/quickdrop/issues" target="_blank">Report Issue</a>
+          <a href="https://github.com/binodacharya/quickdrop/blob/main/CONTRIBUTING.md" target="_blank">Contributing</a>
+        </div>
+
+        <div class="footer-col">
+          <h4>Legal</h4>
+          <a href="https://github.com/binodacharya/quickdrop/blob/main/LICENSE" target="_blank">MIT License</a>
+          <a href="#privacy">Privacy Policy</a>
+          <a href="#terms">Terms of Service</a>
+        </div>
+
+        <div class="footer-col">
+          <h4>Developer</h4>
+          <a href="https://binodacharya.com" target="_blank">Binod Acharya</a>
+          <a href="https://twitter.com/binodacharya" target="_blank">Twitter</a>
+          <a href="https://github.com/binodacharya" target="_blank">GitHub Profile</a>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p>© 2026 QuickDrop. Built with <i class="ph-fill ph-heart" style="color: #ef4444"></i> by <a href="https://binodacharya.com" target="_blank">Binod Acharya</a>. Open source under MIT License.</p>
+      </div>
     </div>
   </footer>
 
-  <script>
-    const platform = navigator.platform.toLowerCase();
-    const btn = document.getElementById('download-btn');
-    const text = document.getElementById('download-text');
-    const urls = {
-      mac: 'https://github.com/quickdrop/quickdrop-app/releases/latest/download/QuickDrop-mac.dmg',
-      windows: 'https://github.com/quickdrop/quickdrop-app/releases/latest/download/QuickDrop-setup.exe',
-      linux: 'https://github.com/quickdrop/quickdrop-app/releases/latest/download/QuickDrop-linux.AppImage'
-    };
-    
-    let detected = 'mac';
-    if (platform.includes('win')) { detected = 'windows'; text.textContent = 'Download for Windows'; }
-    else if (platform.includes('linux')) { detected = 'linux'; text.textContent = 'Download for Linux'; }
-    
-    btn.onclick = () => window.location.href = urls[detected];
-  </script>
 </body>
 </html>`
 }
@@ -713,11 +1151,57 @@ export default {
       return new Response(null, {
         headers: {
           'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, PUT, OPTIONS',
+          'Access-Control-Allow-Methods': 'GET, PUT, POST, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type, X-Amz-Date, X-Amz-Content-SHA256, Authorization',
           'Access-Control-Max-Age': '86400'
         }
       })
+    }
+
+    // Handle API Upload (POST /api/upload)
+    if (path === '/api/upload' && request.method === 'POST') {
+      try {
+        const formData = await request.formData()
+        const image = formData.get('image') as File
+        const expiryHours = formData.get('expiryHours')
+
+        if (!image) {
+          return new Response(JSON.stringify({ error: 'No image provided' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+          })
+        }
+
+        // Calculate expiry time (default: 24h)
+        const hours = expiryHours ? Number(expiryHours) : 24
+        const expiresAt = Date.now() + hours * 60 * 60 * 1000
+
+        // Generate ID
+        const id = Math.random().toString(36).substring(2, 8)
+        const key = `${id}.png`
+
+        // Upload to R2
+        await env.QUICKDROP_BUCKET.put(key, await image.arrayBuffer(), {
+          httpMetadata: { contentType: 'image/png' },
+          customMetadata: {
+            originalName: image.name,
+            uploadedAt: Date.now().toString(),
+            expiresAt: expiresAt.toString()
+          }
+        })
+
+        const link = `${url.origin}/${id}`
+        
+        return new Response(JSON.stringify({ id, link, success: true }), {
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        })
+      } catch (error) {
+        console.error('Upload failed:', error)
+        return new Response(JSON.stringify({ error: 'Upload failed' }), { 
+          status: 500,
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        })
+      }
     }
 
     // Root path - serve landing page
@@ -803,22 +1287,42 @@ export default {
         })
       }
 
-      // Return raw image (or raw encrypted blob)
-      const headers = new Headers()
-      headers.set('Cache-Control', 'public, max-age=3600')
-      headers.set('Access-Control-Allow-Origin', '*')
+      // If user wants raw image, return it directly
+      if (wantsRaw) {
+        const headers = new Headers()
+        // Use shorter cache with must-revalidate to respect cache-busting
+        headers.set('Cache-Control', 'public, max-age=300, must-revalidate')
+        headers.set('Access-Control-Allow-Origin', '*')
 
-      if (isEncrypted) {
-        headers.set('Content-Type', 'application/octet-stream')
-        headers.set('Content-Disposition', `attachment; filename="${imageId}.enc"`)
-      } else {
-        headers.set('Content-Type', 'image/png')
-        if (object.httpMetadata?.contentDisposition) {
-          headers.set('Content-Disposition', object.httpMetadata.contentDisposition)
+        // Add ETag based on upload time for cache validation
+        const uploadedAt = object.customMetadata?.uploadedAt || object.uploaded.getTime().toString()
+        headers.set('ETag', `"${imageId}-${uploadedAt}"`)
+
+        if (isEncrypted) {
+          headers.set('Content-Type', 'application/octet-stream')
+          headers.set('Content-Disposition', `attachment; filename="${imageId}.enc"`)
+        } else {
+          headers.set('Content-Type', 'image/png')
+          if (object.httpMetadata?.contentDisposition) {
+            headers.set('Content-Disposition', object.httpMetadata.contentDisposition)
+          }
         }
+
+        return new Response(object.body, { headers })
       }
 
-      return new Response(object.body, { headers })
+      // Serve viewer HTML for regular images (non-encrypted, non-raw)
+      const imageRawUrl = `${url.origin}/${imageId}.png`
+
+      // Try to get OCR text from custom metadata (if we stored it)
+      const ocrText = object.customMetadata?.ocrText || ''
+
+      return new Response(getViewerHTML(imageRawUrl, imageId, ocrText), {
+        headers: {
+          'Content-Type': 'text/html',
+          'Cache-Control': 'no-cache'
+        }
+      })
 
     } catch (error) {
       console.error('Error fetching image:', error)
@@ -834,8 +1338,7 @@ export default {
     const startTime = Date.now()
     console.log(`[Cleanup] Starting cleanup job at ${new Date().toISOString()}`)
 
-    const EXPIRY_HOURS = 24
-    const expiryTime = Date.now() - EXPIRY_HOURS * 60 * 60 * 1000
+    const now = Date.now()
 
     let deletedCount = 0
     let scannedCount = 0
@@ -846,17 +1349,36 @@ export default {
       do {
         const listed = await env.QUICKDROP_BUCKET.list({
           cursor,
-          limit: 1000 // Process 1000 objects at a time
+          limit: 1000, // Process 1000 objects at a time
+          include: ['customMetadata']
         })
 
         scannedCount += listed.objects.length
 
-        // Delete expired objects
+        // Delete expired objects based on custom expiresAt metadata
         for (const object of listed.objects) {
-          if (object.uploaded.getTime() < expiryTime) {
-            await env.QUICKDROP_BUCKET.delete(object.key)
-            deletedCount++
-            console.log(`[Cleanup] Deleted expired image: ${object.key} (uploaded: ${object.uploaded.toISOString()})`)
+          // Get full object with metadata
+          const obj = await env.QUICKDROP_BUCKET.get(object.key)
+          if (!obj) continue
+
+          // Check custom expiry time if available
+          const expiresAtStr = obj.customMetadata?.expiresAt
+          if (expiresAtStr) {
+            const expiresAt = Number(expiresAtStr)
+            if (now > expiresAt) {
+              await env.QUICKDROP_BUCKET.delete(object.key)
+              deletedCount++
+              console.log(`[Cleanup] Deleted expired image: ${object.key} (expired at: ${new Date(expiresAt).toISOString()})`)
+            }
+          } else {
+            // Fallback: delete images older than 24 hours if no expiresAt metadata
+            const EXPIRY_HOURS = 24
+            const expiryTime = now - EXPIRY_HOURS * 60 * 60 * 1000
+            if (object.uploaded.getTime() < expiryTime) {
+              await env.QUICKDROP_BUCKET.delete(object.key)
+              deletedCount++
+              console.log(`[Cleanup] Deleted expired image (no metadata): ${object.key} (uploaded: ${object.uploaded.toISOString()})`)
+            }
           }
         }
 
