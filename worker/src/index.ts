@@ -1204,11 +1204,19 @@ export default {
       }
     }
 
-    // Root path - serve landing page
+    // Root path - redirect to web app
     if (path === '/' || path === '') {
-      return new Response(getLandingHTML(), {
+      return new Response(JSON.stringify({
+        message: 'QuickDrop API',
+        endpoints: {
+          upload: '/api/upload',
+          viewer: '/{imageId}',
+        },
+        webApp: 'https://quickdrop-app.pages.dev',
+        landing: 'https://quickdrop-landing.pages.dev'
+      }), {
         headers: {
-          'Content-Type': 'text/html',
+          'Content-Type': 'application/json',
           'Cache-Control': 'public, max-age=3600'
         }
       })
