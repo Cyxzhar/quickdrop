@@ -549,30 +549,21 @@ export function ImageEditor({ imageUrl, onSave, onCancel }: ImageEditorProps) {
                 onClick={() => setTool('select')}
                 title="Select & Move"
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/>
-                </svg>
+                <i className="ph-bold ph-cursor"></i>
               </button>
               <button
                 className={`tool-btn ${tool === 'arrow' ? 'active' : ''}`}
                 onClick={() => setTool('arrow')}
                 title="Arrow"
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="5" y1="19" x2="19" y2="5"/>
-                  <polyline points="14 5 19 5 19 10"/>
-                </svg>
+                <i className="ph-bold ph-arrow-up-right"></i>
               </button>
               <button
                 className={`tool-btn ${tool === 'pen' ? 'active' : ''}`}
                 onClick={() => setTool('pen')}
                 title="Pen (Freehand)"
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 19l7-7 3 3-7 7-3-3z"/>
-                  <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
-                  <path d="M2 2l7.586 7.586"/>
-                </svg>
+                <i className="ph-bold ph-pen"></i>
               </button>
               <button
                 className={`tool-btn ${tool === 'text' ? 'active' : ''}`}
@@ -582,67 +573,42 @@ export function ImageEditor({ imageUrl, onSave, onCancel }: ImageEditorProps) {
                 }}
                 title="Text"
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="4 7 4 4 20 4 20 7"/>
-                  <line x1="9" y1="20" x2="15" y2="20"/>
-                  <line x1="12" y1="4" x2="12" y2="20"/>
-                </svg>
+                <i className="ph-bold ph-text-t"></i>
               </button>
               <button
                 className={`tool-btn ${tool === 'rectangle' ? 'active' : ''}`}
                 onClick={() => setTool('rectangle')}
                 title="Rectangle"
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="3" y="3" width="18" height="18" rx="2"/>
-                </svg>
+                <i className="ph-bold ph-rectangle"></i>
               </button>
               <button
                 className={`tool-btn ${tool === 'circle' ? 'active' : ''}`}
                 onClick={() => setTool('circle')}
                 title="Circle"
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10"/>
-                </svg>
+                <i className="ph-bold ph-circle"></i>
               </button>
               <button
                 className={`tool-btn ${tool === 'highlighter' ? 'active' : ''}`}
                 onClick={() => setTool('highlighter')}
                 title="Highlighter (Emphasize Area)"
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="3" y="3" width="18" height="18" rx="2" fill="currentColor" opacity="0.3"/>
-                  <rect x="3" y="3" width="18" height="18" rx="2"/>
-                </svg>
+                <i className="ph-bold ph-highlighter-circle"></i>
               </button>
               <button
                 className={`tool-btn ${tool === 'blur' ? 'active' : ''}`}
                 onClick={() => setTool('blur')}
                 title="Blur"
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="3" y="3" width="18" height="18" rx="2"/>
-                  <circle cx="8" cy="8" r="1"/>
-                  <circle cx="12" cy="8" r="1"/>
-                  <circle cx="16" cy="8" r="1"/>
-                  <circle cx="8" cy="12" r="1"/>
-                  <circle cx="12" cy="12" r="1"/>
-                  <circle cx="16" cy="12" r="1"/>
-                  <circle cx="8" cy="16" r="1"/>
-                  <circle cx="12" cy="16" r="1"/>
-                  <circle cx="16" cy="16" r="1"/>
-                </svg>
+                <i className="ph-bold ph-eye-slash"></i>
               </button>
               <button
                 className={`tool-btn tool-btn-danger ${tool === 'eraser' ? 'active' : ''}`}
                 onClick={() => setTool('eraser')}
                 title="Eraser"
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M20 20H7L3 16L12 7L17 12M7 20L12 15"/>
-                  <path d="M12 7L17 2L22 7L17 12L12 7Z"/>
-                </svg>
+                <i className="ph-bold ph-eraser"></i>
               </button>
             </div>
           </div>
@@ -713,10 +679,7 @@ export function ImageEditor({ imageUrl, onSave, onCancel }: ImageEditorProps) {
                 disabled={!selectedId}
                 title="Delete"
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="3 6 5 6 21 6"/>
-                  <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                </svg>
+                <i className="ph-bold ph-trash"></i>
               </button>
               <button
                 className="tool-btn"
@@ -724,10 +687,7 @@ export function ImageEditor({ imageUrl, onSave, onCancel }: ImageEditorProps) {
                 disabled={annotations.length === 0}
                 title="Undo"
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M3 7v6h6"/>
-                  <path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"/>
-                </svg>
+                <i className="ph-bold ph-arrow-counter-clockwise"></i>
               </button>
               <button
                 className="tool-btn"
@@ -735,12 +695,7 @@ export function ImageEditor({ imageUrl, onSave, onCancel }: ImageEditorProps) {
                 disabled={annotations.length === 0}
                 title="Clear All"
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="3 6 5 6 21 6"/>
-                  <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/>
-                  <line x1="10" y1="11" x2="10" y2="17"/>
-                  <line x1="14" y1="11" x2="14" y2="17"/>
-                </svg>
+                <i className="ph-bold ph-broom"></i>
               </button>
             </div>
           </div>
@@ -752,11 +707,7 @@ export function ImageEditor({ imageUrl, onSave, onCancel }: ImageEditorProps) {
               Cancel
             </button>
             <button className="btn btn-primary" onClick={handleSave}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
-                <polyline points="17 21 17 13 7 13 7 21"/>
-                <polyline points="7 3 7 8 15 8"/>
-              </svg>
+              <i className="ph-bold ph-check"></i>
               Save
             </button>
           </div>
@@ -859,13 +810,13 @@ export function ImageEditor({ imageUrl, onSave, onCancel }: ImageEditorProps) {
           </div>
           <div className="status-right">
             <span className="status-hint">
-              {tool === 'text' && '💡 Click to add text, type immediately'}
-              {tool === 'eraser' && '💡 Click any annotation to delete'}
-              {tool === 'select' && '💡 Click to select, drag to move'}
-              {(tool === 'arrow' || tool === 'rectangle' || tool === 'circle') && '💡 Click and drag'}
-              {tool === 'pen' && '✏️ Draw freehand - click and drag'}
-              {tool === 'highlighter' && '🖍️ Drag to emphasize area'}
-              {tool === 'blur' && '🔒 Drag to hide sensitive info'}
+              {tool === 'text' && 'Click to add text, type immediately'}
+              {tool === 'eraser' && 'Click any annotation to delete'}
+              {tool === 'select' && 'Click to select, drag to move'}
+              {(tool === 'arrow' || tool === 'rectangle' || tool === 'circle') && 'Click and drag'}
+              {tool === 'pen' && 'Draw freehand - click and drag'}
+              {tool === 'highlighter' && 'Drag to emphasize area'}
+              {tool === 'blur' && 'Drag to hide sensitive info'}
             </span>
           </div>
         </div>
