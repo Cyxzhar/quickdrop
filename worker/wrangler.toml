@@ -8,6 +8,12 @@ account_id = "c13bb970676201093815112157055bdb"
 binding = "QUICKDROP_BUCKET"
 bucket_name = "quickdrop"
 
+# D1 database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "quickdrop-db"
+database_id = "2f910176-b2e3-45b6-a92e-2b1cb5d81392"
+
 # Cron trigger for cleanup job (runs daily at midnight UTC)
 [triggers]
 crons = ["0 0 * * *"]
