@@ -7,6 +7,8 @@
 
 export interface Env {
   QUICKDROP_BUCKET: R2Bucket
+  DB: D1Database
+  CLAUDE_API_KEY?: string
 }
 
 // Common CSS for all pages
@@ -1181,7 +1183,8 @@ export default {
         const key = `${id}.png`
 
         // Upload to R2
-        await env.QUICKDROP_BUCKET.put(key, await image.arrayBuffer(), {
+        const imageBuffer = await image.arrayBuffer()
+        await env.QUICKDROP_BUCKET.put(key, imageBuffer, {
           httpMetadata: { contentType: 'image/png' },
           customMetadata: {
             originalName: image.name,
@@ -1191,13 +1194,197 @@ export default {
         })
 
         const link = `${url.origin}/${id}`
-        
+        const now = Date.now()
+
+        // Save to database for smart features
+        try {
+          await env.DB.prepare(`
+            INSERT INTO screenshots (
+              id, filename, link, mime_type, file_size,
+              expiry_hours, expires_at, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          `).bind(
+            id,
+            image.name,
+            link,
+            'image/png',
+            imageBuffer.byteLength,
+            hours,
+            expiresAt,
+            now
+          ).run()
+
+          // Queue for AI processing
+          await env.DB.prepare(`
+            INSERT INTO ai_queue (screenshot_id, created_at)
+            VALUES (?, ?)
+          `).bind(id, now).run()
+
+          console.log(`[DB] Saved screenshot ${id} and queued for AI processing`)
+        } catch (dbError) {
+          // Non-fatal: upload succeeded, just log DB error
+          console.error('[DB] Failed to save metadata:', dbError)
+        }
+
         return new Response(JSON.stringify({ id, link, success: true }), {
           headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
         })
       } catch (error) {
         console.error('Upload failed:', error)
         return new Response(JSON.stringify({ error: 'Upload failed' }), { 
+          status: 500,
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        })
+      }
+    }
+
+    // Process AI queue (can be called manually or by cron)
+    if (path === '/api/process-ai' && request.method === 'POST') {
+      if (!env.CLAUDE_API_KEY) {
+        return new Response(JSON.stringify({ error: 'AI processing not configured' }), {
+          status: 503,
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        })
+      }
+
+      try {
+        // Import AI module
+        const { analyzeScreenshot } = await import('./ai-vision')
+
+        // Get pending AI jobs (limit 5 per execution to avoid timeouts)
+        const pending = await env.DB.prepare(`
+          SELECT screenshot_id FROM ai_queue
+          WHERE processed_at IS NULL AND retry_count < 3
+          ORDER BY created_at ASC
+          LIMIT 5
+        `).all()
+
+        let processed = 0
+        let failed = 0
+
+        for (const row of pending.results) {
+          const screenshotId = row.screenshot_id as string
+
+          try {
+            // Get screenshot data
+            const screenshot = await env.DB.prepare(`
+              SELECT id, link, ocr_text FROM screenshots WHERE id = ?
+            `).bind(screenshotId).first()
+
+            if (!screenshot) continue
+
+            // Analyze with AI
+            const analysis = await analyzeScreenshot(
+              screenshot.link as string,
+              screenshot.ocr_text as string || '',
+              env.CLAUDE_API_KEY
+            )
+
+            // Update screenshot with AI metadata
+            await env.DB.prepare(`
+              UPDATE screenshots SET
+                ai_title = ?,
+                ai_tags = ?,
+                ai_category = ?,
+                ai_description = ?,
+                ai_confidence = ?,
+                detected_urls = ?,
+                entities = ?,
+                ai_processed = 1
+              WHERE id = ?
+            `).bind(
+              analysis.title,
+              analysis.tags.join(','),
+              analysis.category,
+              analysis.description,
+              analysis.confidence,
+              JSON.stringify(analysis.detectedUrls),
+              JSON.stringify(analysis.entities),
+              screenshotId
+            ).run()
+
+            // Mark as processed
+            await env.DB.prepare(`
+              UPDATE ai_queue SET processed_at = ? WHERE screenshot_id = ?
+            `).bind(Date.now(), screenshotId).run()
+
+            processed++
+            console.log(`[AI] Processed ${screenshotId}: ${analysis.title}`)
+          } catch (error) {
+            console.error(`[AI] Failed to process ${screenshotId}:`, error)
+
+            // Increment retry count
+            await env.DB.prepare(`
+              UPDATE ai_queue SET
+                retry_count = retry_count + 1,
+                error = ?
+              WHERE screenshot_id = ?
+            `).bind(String(error), screenshotId).run()
+
+            failed++
+          }
+        }
+
+        return new Response(JSON.stringify({
+          success: true,
+          processed,
+          failed,
+          pending: pending.results.length
+        }), {
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        })
+      } catch (error) {
+        console.error('[AI] Queue processing failed:', error)
+        return new Response(JSON.stringify({ error: 'Processing failed' }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        })
+      }
+    }
+
+    // Search API
+    if (path === '/api/search' && request.method === 'GET') {
+      try {
+        const query = url.searchParams.get('q') || ''
+        const category = url.searchParams.get('category')
+        const limit = Math.min(Number(url.searchParams.get('limit')) || 20, 50)
+
+        if (!query || query.length < 2) {
+          return new Response(JSON.stringify({ results: [] }), {
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+          })
+        }
+
+        // Full-text search
+        let sql = `
+          SELECT s.id, s.filename, s.link, s.thumbnail_url,
+                 s.ai_title, s.ai_tags, s.ai_description, s.ai_category,
+                 s.created_at, s.is_public
+          FROM screenshots_fts fts
+          JOIN screenshots s ON s.id = fts.id
+          WHERE screenshots_fts MATCH ? AND s.is_deleted = 0
+        `
+        const bindings: any[] = [query]
+
+        if (category) {
+          sql += ` AND s.ai_category = ?`
+          bindings.push(category)
+        }
+
+        sql += ` ORDER BY rank LIMIT ?`
+        bindings.push(limit)
+
+        const results = await env.DB.prepare(sql).bind(...bindings).all()
+
+        return new Response(JSON.stringify({
+          results: results.results,
+          count: results.results.length
+        }), {
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        })
+      } catch (error) {
+        console.error('[Search] Failed:', error)
+        return new Response(JSON.stringify({ error: 'Search failed' }), {
           status: 500,
           headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
         })
