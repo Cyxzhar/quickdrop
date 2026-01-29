@@ -223,9 +223,15 @@ function App() {
         return updated
       })
 
-      // Copy link to clipboard
-      await navigator.clipboard.writeText(link)
-      showToast('Link copied to clipboard!', 'success')
+      // Try to copy link to clipboard (non-blocking)
+      try {
+        await navigator.clipboard.writeText(link)
+        showToast('Link copied to clipboard!', 'success')
+      } catch (clipboardError) {
+        // Clipboard access failed (document not focused), but upload succeeded
+        console.warn('Clipboard write failed:', clipboardError)
+        showToast('Upload successful! Click copy to get link.', 'success')
+      }
 
       // Extract OCR text in background (non-blocking)
       if (fileOrBlob) {
