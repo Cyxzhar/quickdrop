@@ -180,10 +180,23 @@ function App() {
 
     try {
       let uploadFile = fileOrBlob
+      let ocrTextExtracted = ''
 
       // Compress if File and over 500KB
       if (fileOrBlob instanceof File && fileOrBlob.size > 500 * 1024) {
         uploadFile = await compressImage(fileOrBlob)
+      }
+
+      // Extract OCR text BEFORE upload (for AI processing)
+      try {
+        const extractText = await loadOCR()
+        ocrTextExtracted = await extractText(uploadFile)
+        if (ocrTextExtracted) {
+          console.log(`[OCR] Extracted ${ocrTextExtracted.length} characters before upload`)
+        }
+      } catch (err) {
+        console.warn('[OCR] Pre-upload extraction failed:', err)
+        // Non-fatal, continue with upload
       }
 
       // Create small thumbnail for localStorage (max 200x200, JPEG)
@@ -192,6 +205,11 @@ function App() {
       const formData = new FormData()
       formData.append('image', uploadFile, filename || (fileOrBlob as File).name || 'image.png')
       formData.append('expiryHours', expiryHours.toString())
+
+      // Send OCR text to worker for AI processing
+      if (ocrTextExtracted) {
+        formData.append('ocrText', ocrTextExtracted)
+      }
 
       const response = await fetch(`${API_URL}/api/upload`, {
         method: 'POST',
@@ -212,7 +230,8 @@ function App() {
         filename: filename || (fileOrBlob as File).name || 'screenshot.png',
         thumbnail: thumbnailDataUrl, // Use small local thumbnail for localStorage
         timestamp,
-        expiresAt: timestamp + expiryHours * 60 * 60 * 1000
+        expiresAt: timestamp + expiryHours * 60 * 60 * 1000,
+        ocrText: ocrTextExtracted || undefined // Include OCR text if extracted
       }
 
       // Add to history immediately with small thumbnail
@@ -231,23 +250,6 @@ function App() {
         // Clipboard access failed (document not focused), but upload succeeded
         console.warn('Clipboard write failed:', clipboardError)
         showToast('Upload successful! Click copy to get link.', 'success')
-      }
-
-      // Extract OCR text in background (non-blocking)
-      if (fileOrBlob) {
-        loadOCR().then(extractText => {
-          return extractText(fileOrBlob)
-        }).then(ocrText => {
-          if (ocrText && ocrText.length > 0) {
-            // Update the record with OCR text
-            setHistory(prev => prev.map(item =>
-              item.id === id ? { ...item, ocrText } : item
-            ))
-            console.log(`[OCR] Extracted ${ocrText.length} characters for ${id}`)
-          }
-        }).catch(err => {
-          console.error('[OCR] Extraction failed:', err)
-        })
       }
     } catch (error) {
       console.error('Upload failed:', error)

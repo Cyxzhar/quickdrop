@@ -19,7 +19,8 @@ export interface AIAnalysisResult {
 }
 
 /**
- * Analyze screenshot using Perplexity API (sonar-pro model with vision)
+ * Analyze screenshot OCR text using Perplexity API (text-only analysis)
+ * Note: Perplexity doesn't support vision, so we analyze OCR text instead
  */
 export async function analyzeScreenshot(
   imageUrl: string,
@@ -27,10 +28,16 @@ export async function analyzeScreenshot(
   apiKey: string
 ): Promise<AIAnalysisResult> {
   try {
+    // If no OCR text, use fallback
+    if (!ocrText || ocrText.trim().length < 10) {
+      console.log('[AI] No OCR text available, using fallback analysis')
+      return generateFallbackAnalysis(ocrText)
+    }
+
     // Prepare prompt for Perplexity
     const prompt = buildAnalysisPrompt(ocrText)
 
-    // Call Perplexity API (OpenAI-compatible format)
+    // Call Perplexity API (text-only analysis)
     const response = await fetch('https://api.perplexity.ai/chat/completions', {
       method: 'POST',
       headers: {
@@ -38,41 +45,32 @@ export async function analyzeScreenshot(
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'llama-3.1-sonar-large-128k-online', // Perplexity's latest model
+        model: 'sonar', // Perplexity's base model
         messages: [
           {
             role: 'system',
-            content: 'You are an expert at analyzing screenshots and extracting structured metadata. Always respond with valid JSON only, no additional text.'
+            content: 'You are an expert at analyzing text content extracted from screenshots. Respond with valid JSON only.'
           },
           {
             role: 'user',
-            content: [
-              {
-                type: 'image_url',
-                image_url: {
-                  url: imageUrl
-                }
-              },
-              {
-                type: 'text',
-                text: prompt
-              }
-            ]
+            content: prompt
           }
         ],
-        max_tokens: 1024,
-        temperature: 0.3, // Lower for more consistent JSON output
+        max_tokens: 800,
+        temperature: 0.2, // Lower for consistent JSON output
       }),
     })
 
     if (!response.ok) {
-      const error = await response.text()
-      console.error('[AI] Perplexity API error:', error)
+      const errorText = await response.text()
+      console.error('[AI] Perplexity API error:', errorText)
       throw new Error(`Perplexity API failed: ${response.status}`)
     }
 
     const result = await response.json()
     const analysisText = result.choices[0].message.content
+
+    console.log('[AI] Perplexity response:', analysisText.substring(0, 200))
 
     // Parse structured response
     return parseAIResponse(analysisText, ocrText)

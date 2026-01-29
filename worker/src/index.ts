@@ -1166,6 +1166,7 @@ export default {
         const formData = await request.formData()
         const image = formData.get('image') as File
         const expiryHours = formData.get('expiryHours')
+        const ocrText = formData.get('ocrText') as string | null
 
         if (!image) {
           return new Response(JSON.stringify({ error: 'No image provided' }), {
@@ -1201,26 +1202,27 @@ export default {
           await env.DB.prepare(`
             INSERT INTO screenshots (
               id, filename, link, mime_type, file_size,
-              expiry_hours, expires_at, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+              ocr_text, expiry_hours, expires_at, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
           `).bind(
             id,
             image.name,
             link,
             'image/png',
             imageBuffer.byteLength,
+            ocrText || null,
             hours,
             expiresAt,
             now
           ).run()
 
-          // Queue for AI processing
+          // Queue for AI processing (even if no OCR text, for future enhancements)
           await env.DB.prepare(`
             INSERT INTO ai_queue (screenshot_id, created_at)
             VALUES (?, ?)
           `).bind(id, now).run()
 
-          console.log(`[DB] Saved screenshot ${id} and queued for AI processing`)
+          console.log(`[DB] Saved screenshot ${id}${ocrText ? ' with OCR text' : ''} and queued for AI processing`)
         } catch (dbError) {
           // Non-fatal: upload succeeded, just log DB error
           console.error('[DB] Failed to save metadata:', dbError)
