@@ -8,7 +8,7 @@
 export interface Env {
   QUICKDROP_BUCKET: R2Bucket
   DB: D1Database
-  CLAUDE_API_KEY?: string
+  PERPLEXITY_API_KEY?: string
 }
 
 // Common CSS for all pages
@@ -1240,7 +1240,7 @@ export default {
 
     // Process AI queue (can be called manually or by cron)
     if (path === '/api/process-ai' && request.method === 'POST') {
-      if (!env.CLAUDE_API_KEY) {
+      if (!env.PERPLEXITY_API_KEY) {
         return new Response(JSON.stringify({ error: 'AI processing not configured' }), {
           status: 503,
           headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
@@ -1277,7 +1277,7 @@ export default {
             const analysis = await analyzeScreenshot(
               screenshot.link as string,
               screenshot.ocr_text as string || '',
-              env.CLAUDE_API_KEY
+              env.PERPLEXITY_API_KEY
             )
 
             // Update screenshot with AI metadata

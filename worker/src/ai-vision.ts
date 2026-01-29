@@ -19,7 +19,7 @@ export interface AIAnalysisResult {
 }
 
 /**
- * Analyze screenshot using Claude API
+ * Analyze screenshot using Perplexity API (sonar-pro model with vision)
  */
 export async function analyzeScreenshot(
   imageUrl: string,
@@ -27,60 +27,52 @@ export async function analyzeScreenshot(
   apiKey: string
 ): Promise<AIAnalysisResult> {
   try {
-    // Fetch image and convert to base64
-    const imageResponse = await fetch(imageUrl)
-    if (!imageResponse.ok) {
-      throw new Error('Failed to fetch image for analysis')
-    }
-
-    const imageBuffer = await imageResponse.arrayBuffer()
-    const base64Image = arrayBufferToBase64(imageBuffer)
-    const mimeType = imageResponse.headers.get('content-type') || 'image/png'
-
-    // Prepare prompt for Claude
+    // Prepare prompt for Perplexity
     const prompt = buildAnalysisPrompt(ocrText)
 
-    // Call Claude API
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    // Call Perplexity API (OpenAI-compatible format)
+    const response = await fetch('https://api.perplexity.ai/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
+        'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'claude-3-haiku-20240307', // Fast and cheap for this use case
-        max_tokens: 1024,
+        model: 'llama-3.1-sonar-large-128k-online', // Perplexity's latest model
         messages: [
+          {
+            role: 'system',
+            content: 'You are an expert at analyzing screenshots and extracting structured metadata. Always respond with valid JSON only, no additional text.'
+          },
           {
             role: 'user',
             content: [
               {
-                type: 'image',
-                source: {
-                  type: 'base64',
-                  media_type: mimeType,
-                  data: base64Image,
-                },
+                type: 'image_url',
+                image_url: {
+                  url: imageUrl
+                }
               },
               {
                 type: 'text',
-                text: prompt,
-              },
-            ],
-          },
+                text: prompt
+              }
+            ]
+          }
         ],
+        max_tokens: 1024,
+        temperature: 0.3, // Lower for more consistent JSON output
       }),
     })
 
     if (!response.ok) {
       const error = await response.text()
-      console.error('[AI] Claude API error:', error)
-      throw new Error(`Claude API failed: ${response.status}`)
+      console.error('[AI] Perplexity API error:', error)
+      throw new Error(`Perplexity API failed: ${response.status}`)
     }
 
     const result = await response.json()
-    const analysisText = result.content[0].text
+    const analysisText = result.choices[0].message.content
 
     // Parse structured response
     return parseAIResponse(analysisText, ocrText)
@@ -208,14 +200,3 @@ function extractUrlsFromText(text: string): string[] {
     .slice(0, 10) // Limit to 10 URLs
 }
 
-/**
- * Convert ArrayBuffer to base64
- */
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer)
-  let binary = ''
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i])
-  }
-  return btoa(binary)
-}
