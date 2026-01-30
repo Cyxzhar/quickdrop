@@ -191,9 +191,6 @@ function App() {
       try {
         const extractText = await loadOCR()
         ocrTextExtracted = await extractText(uploadFile)
-        if (ocrTextExtracted) {
-          console.log(`[OCR] Extracted ${ocrTextExtracted.length} characters before upload`)
-        }
       } catch (err) {
         console.warn('[OCR] Pre-upload extraction failed:', err)
         // Non-fatal, continue with upload

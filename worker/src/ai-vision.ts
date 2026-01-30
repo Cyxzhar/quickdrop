@@ -30,7 +30,6 @@ export async function analyzeScreenshot(
   try {
     // If no OCR text, use fallback
     if (!ocrText || ocrText.trim().length < 10) {
-      console.log('[AI] No OCR text available, using fallback analysis')
       return generateFallbackAnalysis(ocrText)
     }
 
@@ -69,8 +68,6 @@ export async function analyzeScreenshot(
 
     const result = await response.json()
     const analysisText = result.choices[0].message.content
-
-    console.log('[AI] Perplexity response:', analysisText.substring(0, 200))
 
     // Parse structured response
     return parseAIResponse(analysisText, ocrText)
